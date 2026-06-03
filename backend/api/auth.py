@@ -8,6 +8,7 @@ import redis.asyncio as aioredis
 from db.session import get_db
 from db.models import User
 from services.auth_service import generate_otp, create_token, decode_token
+from services.sms_service import send_otp_sms
 from app_config import settings
 
 router = APIRouter()
@@ -59,8 +60,10 @@ async def send_otp(body: OtpSendRequest, r=Depends(get_redis)):
         raise HTTPException(429, "Too many OTP requests")
     otp = generate_otp()
     await r.setex(f"otp:{phone}", settings.otp_ttl_seconds, otp)
-    # MVP: log OTP instead of SMS (replace with 腾讯云短信 in production)
-    print(f"[OTP] {phone}: {otp}")
+    try:
+        await send_otp_sms(phone, otp)
+    except RuntimeError as e:
+        raise HTTPException(503, f"SMS service error: {e}")
     return {"message": "OTP sent"}
 
 

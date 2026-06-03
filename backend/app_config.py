@@ -8,6 +8,15 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     haiku_model: str = "claude-haiku-4-5-20251001"
     sonnet_model: str = "claude-sonnet-4-6"
+    # Tencent Cloud SMS
+    tencent_secret_id: str = ""
+    tencent_secret_key: str = ""
+    sms_sdk_app_id: str = ""
+    sms_sign_name: str = ""
+    sms_template_id: str = ""
+    # Tencent COS
+    cos_secret_id: str = ""
+    cos_secret_key: str = ""
     cos_bucket: str = ""
     cos_region: str = "ap-chengdu"
     otp_ttl_seconds: int = 300
