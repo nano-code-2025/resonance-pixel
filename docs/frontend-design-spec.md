@@ -88,39 +88,63 @@ Text in `#6B6966`, uppercase, letter-spacing 2px, with `#C5C1BB` line extending 
 
 **Input**: Background `#FBF9F6`, border-bottom `1px solid #C5C1BB` (only bottom border). Focus: border-bottom `#C4956A`. Placeholder: `#9E9A94`.
 
-### 2.5 Pixel Art Style (Ghibli-inspired)
+### 2.5 Pixel Art Style (Ghibli + Terraria-inspired)
 
-The app features **pixel-art scene illustrations** at key moments, NOT as background textures but as hero images:
+The app features **pixel-art scene illustrations** at key moments, NOT as background textures but as hero images. The pixel art combines **Studio Ghibli's warmth** with **Terraria's procedural plant growth** — living, growing, interactive pixel plants that respond to relationship progress and real time.
 
-**Style references**: The pixel tree scene from mmguo.dev — a large oak tree with a small character underneath, surrounded by a night-sky circle with stars and fireflies. This exact vibe.
+**Style references**:
+- mmguo.dev's pixel tree scene — warm circular glow, character under tree, stars/fireflies
+- Terraria's biome-specific plant system — each environment has distinct flora types, colors, growth patterns
+- Terraria's tile-based aesthetic — 16x16 pixel tiles, clean sharp edges, no anti-aliasing
 
 **Where pixel art appears**:
-- **Login page**: Hero illustration — a small pixel character sitting under a tree, waiting. Stars twinkling.
+- **Login page**: Hero illustration — a small pixel character sitting under a tree, waiting. Stars twinkling. Day/night sky matches real time.
 - **Onboarding complete**: Pixel character stands up, a seed appears in their hand.
 - **Pool page header**: Pixel landscape — a village path with distant houses and trees.
-- **Pipeline match card**: Each match has a unique RelationshipBloom (growing pixel plant).
-- **Session background**: Large pixel tree with two characters sitting underneath (translucent, 15% opacity).
-- **Rating complete**: Pixel flower blooms / withers based on decision.
+- **Pipeline match card**: Each match has a unique RelationshipBloom — a specific **plant species** (not just color variation) that grows with the relationship.
+- **Session background**: Large pixel tree with two characters sitting underneath (translucent, 15% opacity). The tree type matches the match's bloom species.
+- **Rating complete**: Pixel flower blooms (petal particle burst) or withers (autumn leaf fall) based on decision.
 - **Empty states**: Small pixel character sitting alone, with gentle text.
 
 **Pixel art palette** (for the illustrations):
 - Night sky: deep navy `#2B3A67` with warm white stars `#F0EDE8`
+- Dawn/dusk sky: warm gradient `#D4915A` → `#2B3A67`
+- Day sky: soft blue `#87AECF` with warm white clouds `#F0EDE8`
 - Foliage: natural greens `#4A7C59`, `#6B9E5E`, `#3D6B48`
+- Tropical foliage: lush greens `#2D8B4E`, `#4AAF6E`, `#1D6B3A`
+- Sakura pink: `#E8A0B0`, `#D4869A`, `#F0C0D0`
+- Wisteria purple: `#9B7BC0`, `#B090D0`, `#7A5AA0`
+- Lavender: `#8B7BB0`, `#A090C8`, `#C4B0E0`
+- Rose red: `#C45060`, `#D07080`, `#E0A0A8`
+- Sunflower gold: `#D4A040`, `#E4B858`, `#C49030`
 - Earth/trunk: warm browns `#8B6B4A`, `#6B5038`, `#A0845C`
+- Water: `#5A8AAE`, `#7AAECE`, `#4A7A9E` (for lotus pond)
 - Character hair: warm red-brown `#C46B4A` (like mmguo.dev's character)
 - Character skin: soft peach `#E8C4A0`
-- Flowers: soft pink `#D4869A`, amber `#C4956A`, lavender `#8B7BB0`
 - Glow/halo: radial gradient from transparent to `rgba(43,58,103,0.4)` (the night sky circle effect)
+- Particle glow: `#F0EDE8` at low opacity for fireflies, pollen, sparkles
 
-**Canvas rendering**: 20-28px pixel grid, rendered on `<canvas>`, scaled to desired size. Each "pixel" is a clear, sharp square — NO anti-aliasing, NO smoothing. `image-rendering: pixelated`.
+**Canvas rendering**: 20x28 pixel grid, rendered on `<canvas>` via `requestAnimationFrame` loop, scaled to desired size. Each "pixel" is a clear, sharp square — NO anti-aliasing, NO smoothing. `image-rendering: pixelated`. Tile size reference: 1 canvas pixel = 1 grid cell (like Terraria's 16x16 tile system).
 
-### 2.6 Animation Rules
+### 2.6 Animation Rules (Terraria-inspired)
 
+**Continuous canvas animations** (via `requestAnimationFrame`):
+- **Day/night sky cycle**: Background sky color shifts to match real local time. Dawn (5-7am): warm orange gradient. Day (7am-5pm): soft blue. Dusk (5-7pm): amber-purple. Night (7pm-5am): deep navy with twinkling stars. Transition is smooth (CSS-like interpolation over 30 minutes).
+- **Star twinkle**: Stars pulse opacity 0.3→0.8 on staggered 3-5s sin-wave cycles. Only visible during night sky.
+- **Leaf/petal particles**: Small 1-2px squares that drift downward with slight horizontal sway (sin wave). Spawned on events (question complete, bloom grow, tap interaction). Max 8 particles at once. Colors match the plant species palette.
+- **Firefly particles**: 1px warm white dots (`#F0EDE8`) with glow, drifting slowly in random paths. Only visible during night. Max 4 per bloom.
+- **Growth animation**: When a stage transition occurs, the plant "builds" upward over 800ms — new pixels appear bottom-to-top with a brief particle burst at completion (6-10 particles).
+- **Decay animation**: Leaves slowly change from green → yellow → brown over multiple frames. Occasional leaf pixel detaches and drifts down.
+
+**UI animations** (CSS/React):
 - **Typewriter**: Text reveals character by character (40ms per char) — for AI messages and question reveals
 - **Fade**: `opacity 0→1, duration 300ms` for page transitions and question changes
-- **Star twinkle**: Subtle opacity pulse on pixel stars (CSS animation, very slow — 3-5s cycle)
-- **Bloom grow**: When a question is completed, the RelationshipBloom adds a tiny leaf/flower (canvas animation, 500ms)
-- **NO**: bounce, confetti, particle effects, slide-up sheets, spring physics, heart rain
+
+**Interactive** (touch/click on RelationshipBloom canvas):
+- **Tap to shake**: Plant sways slightly (2px offset oscillation, 400ms), 3-5 leaf particles fall. Cooldown 2s.
+- **Water effect on question complete**: Brief blue particle shower from top of canvas (like rain), plant brightens momentarily.
+
+**What this is NOT**: The particle effects are minimal and warm — think fireflies and falling leaves, NOT confetti cannons, heart rain, or flashy game VFX. Everything should feel like watching nature.
 
 ### 2.7 What This Design AVOIDS
 
@@ -130,7 +154,7 @@ The app features **pixel-art scene illustrations** at key moments, NOT as backgr
 ✗  Stock photo illustrations of happy couples
 ✗  Pink/purple gradient backgrounds
 ✗  Rounded "bubble" UI (border-radius > 2px)
-✗  Confetti, heart rain, match animations
+✗  Heavy particle effects, confetti, heart rain (we use subtle nature particles only)
 ✗  Glossy, high-contrast "tech startup" aesthetic
 ✗  Dense card grids (we use generous whitespace)
 ✗  Anything that feels like a swipe app
@@ -472,15 +496,221 @@ Ready: `飞书视频 · 6月5日 14:00` + `[开始对话]` accent button
 
 Deterministic 8-bit portrait from userId. 8x8 pixel grid. 4 warm palettes (amber, rose, forest, golden). Rendered as CSS grid of colored divs or small canvas.
 
-### 5.2 RelationshipBloom
+### 5.2 RelationshipBloom — Pixel Plant Growth Engine
 
-Canvas pixel-art plant in a Ghibli style. Grows from seed → sprout → bush → flowering tree.
+Canvas pixel-art plant inspired by **Terraria's biome-specific procedural flora** + **Ghibli's warmth**. Each relationship is a unique living plant that grows, blooms, responds to touch, and reflects real time.
 
-**Key change from original**: Instead of abstract pixel shapes, render as a recognizable **small tree/plant scene** — soil at bottom, stem growing up, leaves, flowers, eventually a small tree. Two tiny pixel characters may appear beside it at later stages.
+#### 5.2.1 Plant Species Library (v1: 12 species)
 
-**5 warm palettes**: Amber, Rose, Forest Green, Golden, Lavender — all drawn from the Ghibli-inspired warm color set above.
+Each match is assigned a species at creation, based on the compatibility profile between two users. The `match_id` seeds deterministic variation within each species (slight branching differences, petal positions).
 
-**Decay**: Colors gradually shift toward gray-brown (like autumn leaves falling) rather than harsh grayscale.
+**Romantic Flowers:**
+
+| ID | Name | Chinese | Growth Form | Key Visual |
+|---|---|---|---|---|
+| `sakura` | Cherry Blossom | 樱花 | Small tree → spreading branches → pink petal canopy | Pink petals drift down continuously |
+| `rose` | Rose Bush | 玫瑰 | Thorny stem → multi-branch → layered red blooms | Deep red cross-shaped pixel flowers |
+| `wisteria` | Wisteria | 紫藤 | Vine climbs upward → cascading purple flower chains | Flowers hang downward (unique!) |
+| `peony` | Peony | 牡丹 | Short bush → wide layered bloom (China's flower) | Large 5x5px bloom at crown |
+| `lotus` | Lotus | 莲花 | Pad on water → stem rises → single majestic bloom | Water base instead of soil, blue tones |
+
+**Warm Nature:**
+
+| ID | Name | Chinese | Growth Form | Key Visual |
+|---|---|---|---|---|
+| `oak` | Oak Tree | 橡树 | Classic tree: thick trunk → wide canopy → acorns | Widest canopy of all species |
+| `sunflower` | Sunflower | 向日葵 | Single tall stem → large golden face at top | Flower "face" tracks day/night direction |
+| `lavender` | Lavender Field | 薰衣草 | Multiple thin stems → purple spike clusters | 3 parallel stems, field effect |
+| `dandelion` | Dandelion | 蒲公英 | Stem → yellow bloom → white puff → seeds fly away | Stage 4: seed particles drift off |
+
+**Tropical & Whimsical:**
+
+| ID | Name | Chinese | Growth Form | Key Visual |
+|---|---|---|---|---|
+| `plumeria` | Frangipani | 鸡蛋花 | Tropical tree → thick branches → 5-petal white-yellow blooms | Warm tropical palette |
+| `bougainvillea` | Bougainvillea | 三角梅 | Climbing vine → explosive magenta/orange bracts | Most colorful species |
+| `glow_mushroom` | Glowing Mushroom | 发光蘑菇 | Small caps → cluster → luminescent glow | Emits pixel glow aura at night (Terraria homage) |
+
+#### 5.2.2 Species Color Palettes
+
+Each species defines its own 5-color set used across all growth stages:
+
+```
+sakura:       ground=#8B6B4A  stem=#6B5038  leaf=#4A7C59  flower=#E8A0B0  light=#F0C0D0
+rose:         ground=#6B5038  stem=#3D6B48  leaf=#4A7C59  flower=#C45060  light=#E0A0A8
+wisteria:     ground=#8B6B4A  stem=#6B5038  leaf=#4A7C59  flower=#9B7BC0  light=#C4B0E0
+peony:        ground=#8B6B4A  stem=#4A7C59  leaf=#6B9E5E  flower=#D4869A  light=#F0C0D0
+lotus:        ground=#5A8AAE  stem=#4A7C59  leaf=#2D8B4E  flower=#F0C0D0  light=#F0EDE8
+oak:          ground=#8B6B4A  stem=#6B5038  leaf=#4A7C59  flower=#C4956A  light=#FFF4E0
+sunflower:    ground=#8B6B4A  stem=#4A7C59  leaf=#6B9E5E  flower=#D4A040  light=#FFFBE0
+lavender:     ground=#A0845C  stem=#4A7C59  leaf=#6B9E5E  flower=#8B7BB0  light=#C4B0E0
+dandelion:    ground=#8B6B4A  stem=#6B9E5E  leaf=#4A7C59  flower=#D4A040  light=#F0EDE8
+plumeria:     ground=#A0845C  stem=#6B5038  leaf=#2D8B4E  flower=#F0EDE8  light=#E8D5C0
+bougainvillea:ground=#8B6B4A  stem=#3D6B48  leaf=#2D8B4E  flower=#C45060  light=#D4915A
+glow_mushroom:ground=#3D6B48  stem=#4A7C59  leaf=#6B9E5E  flower=#7AAECE  light=#F0EDE8
+```
+
+#### 5.2.3 Growth Stages (5 stages, same for all species)
+
+| Stage | Name | Round | Visual Description |
+|---|---|---|---|
+| 0 | Seed (种子) | Just matched | 1-2px seed on soil, faint glow above |
+| 1 | Sprout (萌芽) | Round 1 start | Short stem (3-5px tall), 1-2 tiny leaves |
+| 2 | Growth (生长) | Round 1 done | Taller stem (7-9px), multiple leaves, species shape forming |
+| 3 | Bloom (花开) | Round 2 done | Near full height, flowers appear, species fully recognizable |
+| 4 | Full Bloom (繁花) | Round 3 / Confirmed | Maximum size, all flowers open, particle effects active, halo glow |
+
+Stage transitions animate bottom-to-top (800ms) with a leaf/petal particle burst at completion.
+
+#### 5.2.4 Day/Night Sky System
+
+The bloom canvas background reflects **real local time** (Terraria day/night cycle):
+
+```
+Time        Sky Color                    Elements
+05:00-07:00 Dawn gradient #D4915A→#87AECF  Fading stars, warm glow at horizon
+07:00-17:00 Day sky #87AECF               Soft white clouds (1-2 small pixel clusters)
+17:00-19:00 Dusk gradient #87AECF→#2B3A67  Orange horizon, first stars appear
+19:00-05:00 Night sky #2B3A67              Stars twinkle, firefly particles
+```
+
+Transition between phases is smooth (linear interpolation over the boundary hour).
+
+#### 5.2.5 Particle System
+
+Lightweight particle engine running within the bloom canvas (max 12 particles):
+
+| Particle Type | Trigger | Visual | Behavior |
+|---|---|---|---|
+| Leaf fall | Tap shake, decay | 1-2px in leaf color | Drift down with sin-wave sway, fade out |
+| Petal drift | Sakura/rose bloom, rating | 1px in flower color | Float down slowly, slight rotation |
+| Growth burst | Stage transition | Mixed leaf+flower 1px | Burst outward from crown, 6-10 particles |
+| Firefly | Night time, stage 3+ | 1px warm white, glow | Slow random drift, opacity pulse |
+| Dandelion seeds | Dandelion stage 4 only | 1px white with tiny line | Drift upward and outward |
+| Water ripple | Lotus only | 1px blue, horizontal | Expand outward from water surface |
+| Rain/water | Question complete | 1px blue `#5A8AAE` | Fall straight down from top, 4-6 drops |
+
+#### 5.2.6 Interactive Touch
+
+- **Tap to shake**: Plant offsets 2px left→right→center (400ms). Spawns 3-5 leaf particles. Cooldown 2s.
+- **Question complete**: "Watering" animation — rain particles from top, plant brightens briefly (saturation +20% for 500ms).
+- **Stage transition**: Growth animation plays, followed by growth burst particles.
+
+#### 5.2.7 Decay System (Terraria "Corruption" inspired)
+
+Instead of harsh grayscale, decay follows an autumn/corruption progression:
+
+| Days Inactive | Vitality | Visual Change |
+|---|---|---|
+| 0-3 days | 1.0 | Full color, all particles active |
+| 4-7 days | 0.65 | Leaves shift green→yellow. No fireflies. |
+| 8-14 days | 0.35 | Leaves yellow→brown. Occasional leaf-fall particle (auto). Flowers close. |
+| 15+ days | 0.15 | Most leaves gone. Bare branches. Soil darkens. Muted palette. |
+| Closed | 0.0 | Grayscale skeleton. Ground cracks. No particles. |
+
+#### 5.2.8 Species Assignment Logic (Backend)
+
+When a Match is created, the backend assigns `bloom_type` based on the compatibility profile:
+
+```
+Compatibility Signal        → Species Pool
+High personality overlap    → sakura, peony, rose (romantic flowers)
+Strong values alignment     → oak, sunflower (warm, grounded)
+Complementary traits        → wisteria, lavender (elegant contrast)
+Adventurous/creative both   → bougainvillea, plumeria (tropical)
+Intellectual/curious both   → glow_mushroom, dandelion (whimsical)
+Fallback (no strong signal) → random from full library
+```
+
+The exact assignment is deterministic: `hash(user_a_id + user_b_id + compatibility_bucket) % species_in_pool`.
+
+### 5.2b Pixel Plant Conversion Engine (Phase 2)
+
+> **Goal**: Enable expanding the plant library by converting real plant photos or names into pixel-art sprite definitions compatible with the RelationshipBloom renderer.
+
+#### Sprite Definition Format (JSON)
+
+Every plant species is defined as a JSON sprite definition that the canvas renderer interprets:
+
+```json
+{
+  "id": "sakura",
+  "name": "Cherry Blossom",
+  "name_zh": "樱花",
+  "palette": {
+    "ground": "#8B6B4A",
+    "stem": "#6B5038",
+    "leaf": ["#4A7C59", "#6B9E5E", "#3D6B48"],
+    "flower": ["#E8A0B0", "#D4869A", "#F0C0D0"],
+    "light": "#F0C0D0"
+  },
+  "stages": [
+    {
+      "stage": 0,
+      "elements": [
+        { "type": "seed", "x": 10, "y": 24, "color": "ground" }
+      ]
+    },
+    {
+      "stage": 1,
+      "elements": [
+        { "type": "stem", "points": [[10,24],[10,21]], "sway": false },
+        { "type": "leaf", "anchor": [10,22], "dir": "left", "size": 1 },
+        { "type": "leaf", "anchor": [10,21], "dir": "right", "size": 1 }
+      ]
+    },
+    {
+      "stage": 2,
+      "elements": [
+        { "type": "stem", "points": [[10,24],[10,18]], "sway": true, "variance": 1 },
+        { "type": "leaf_cluster", "anchor": [10,20], "count": 4, "spread": 2 },
+        { "type": "leaf_cluster", "anchor": [10,18], "count": 3, "spread": 2 },
+        { "type": "flower", "anchor": [8,19], "shape": "cross", "size": 1 }
+      ]
+    }
+  ],
+  "particles": {
+    "idle": { "type": "petal_drift", "rate": 0.3, "color": "flower" },
+    "night": { "type": "firefly", "count": 2 }
+  },
+  "decay_override": null
+}
+```
+
+#### Conversion Pipeline (Phase 2 implementation)
+
+```
+Input                    Process                         Output
+─────────────────────────────────────────────────────────────────
+Plant name (text)   →   Claude API prompt:              → JSON sprite definition
+                        "Convert {name} to a 20x28       (above format)
+                        pixel grid sprite definition
+                        with 5 growth stages in
+                        Ghibli pixel art style"
+
+Plant photo (image) →   Claude Vision API:              → JSON sprite definition
+                        "Analyze this plant. Extract
+                        dominant colors, growth form,
+                        leaf/flower shapes. Generate
+                        a 20x28 pixel sprite definition
+                        with 5 growth stages."
+
+JSON sprite def     →   Frontend renderer validates     → Rendered canvas
+                        and renders (same engine as
+                        built-in species)
+```
+
+#### Admin API Endpoints (Phase 2)
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/admin/plants/generate` | Generate sprite JSON from name or image |
+| GET | `/api/admin/plants` | List all plant species (built-in + custom) |
+| POST | `/api/admin/plants` | Add custom plant species (validated JSON) |
+| GET | `/api/admin/plants/{id}/preview` | Render preview of all 5 stages |
+
+**Phase 1 (now)**: 12 built-in species, hardcoded in frontend as constants.
+**Phase 2 (later)**: Conversion engine + admin UI + dynamic loading from backend.
 
 ### 5.3 RoundProgress
 
@@ -536,7 +766,7 @@ Horizontal 3-milestone bar:
 ### Pipeline
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/pipeline` | Get pursuing + being_found matches |
+| GET | `/api/pipeline` | Get pursuing + being_found matches (includes `bloom_type`, `days_since_activity`) |
 
 ### Sessions
 | Method | Path | Purpose |
@@ -643,10 +873,15 @@ Horizontal 3-milestone bar:
 - Round 1 complete: Real selfie unlocked
 
 ### 8.5 RelationshipBloom as Visual Metaphor
-- Each match has a unique pixel plant (seeded by match_id)
-- Grows as rounds progress: seed → sprout → growth → bloom
-- Withers (autumn colors, falling leaves) if no activity for 7+ days
-- Appears in: Session background, Pipeline card, Session header
+- Each match has a unique **plant species** (12 types: sakura, rose, wisteria, peony, lotus, oak, sunflower, lavender, dandelion, plumeria, bougainvillea, glow_mushroom)
+- Species assigned by backend based on compatibility profile; `match_id` seeds deterministic variation within species
+- Grows through 5 stages as rounds progress: seed → sprout → growth → bloom → full bloom
+- **Day/night sky** background syncs to real local time (Terraria-inspired cycle)
+- **Particle effects**: leaf fall, petal drift, fireflies (night), species-specific (dandelion seeds, lotus ripples)
+- **Interactive**: tap to shake (leaf particles fall), watering animation on question complete
+- **Decay**: autumn progression (green→yellow→brown→bare) instead of harsh grayscale, with auto leaf-fall particles
+- Appears in: Session background (large, 15% opacity), Pipeline card (100px), Session header (56px)
+- **Phase 2**: Plant Conversion Engine — add new species from photos/names via Claude Vision API
 
 ---
 
@@ -671,5 +906,9 @@ All loading uses Inter font, muted warm gray, centered.
 - **Auth**: JWT token in localStorage, `Authorization: Bearer {token}` header
 - **API base**: `VITE_API_URL` env var
 - **Canvas**: Used for RelationshipBloom and pixel-art hero illustrations. Must use `image-rendering: pixelated` for crisp pixels.
+- **RelationshipBloom rendering**: `requestAnimationFrame` loop for continuous animation (day/night, particles, star twinkle). Pauses when canvas is off-screen (`IntersectionObserver`). Target 30fps to save battery on mobile.
+- **Plant species**: 12 built-in species defined as TypeScript constants (Phase 1). Phase 2: JSON sprite definitions loaded from backend API.
+- **Day/night cycle**: Uses `new Date().getHours()` for sky color. Recalculated every 60s (not every frame).
+- **Particle system**: Lightweight array of `{x, y, vx, vy, life, color}` objects updated each frame. Max 12 per bloom canvas. No external physics library.
 - **All UI text in Chinese**
 - **No SSR**: Pure client-side SPA

@@ -1,5 +1,7 @@
 """Pipeline view — two-stream: pursuing (I initiated) vs being_found (they initiated)."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +40,10 @@ async def get_pipeline(
         is_initiator = m.user_a_id == current_user.id  # user_a = approach initiator
         other_id = m.user_b_id if is_initiator else m.user_a_id
         other = await db.get(User, other_id)
+        # Compute days since last activity for bloom decay
+        last_act = m.last_activity_at or m.created_at
+        days_inactive = (datetime.now(timezone.utc) - last_act).days if last_act else 0
+
         entry = {
             "match_id": m.id,
             "round": m.current_round,
@@ -45,6 +51,8 @@ async def get_pipeline(
             "other_city": other.city if other else None,
             "other_gender": other.gender if other else None,
             "other_personality_tags": other.personality_tags if other else [],
+            "bloom_type": m.bloom_type or "oak",
+            "days_since_activity": days_inactive,
         }
         (pursuing if is_initiator else being_found).append(entry)
 

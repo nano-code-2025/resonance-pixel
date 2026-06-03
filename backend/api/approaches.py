@@ -14,6 +14,7 @@ from db.models import Approach, Match, User
 from db.session import get_db
 from services.approach_writer import draft_approach_message
 from services.payment_service import charge_approach
+from services.bloom_assigner import assign_bloom_type
 from services.pool_curator import profile_to_text
 
 router = APIRouter()
@@ -157,10 +158,22 @@ async def respond_to_approach(
     approach.status = req_body.response
     approach.responded_at = datetime.now(timezone.utc)
     if req_body.response == "accepted":
+        initiator = await db.get(User, approach.initiator_id)
+        bloom = assign_bloom_type(
+            approach.initiator_id,
+            approach.receiver_id,
+            tags_a=initiator.personality_tags if initiator else None,
+            tags_b=current_user.personality_tags,
+            goals_a=initiator.life_goals if initiator else None,
+            goals_b=current_user.life_goals,
+        )
+        now = datetime.now(timezone.utc)
         match = Match(
             user_a_id=approach.initiator_id,
             user_b_id=approach.receiver_id,
             approach_id=approach.id,
+            bloom_type=bloom,
+            last_activity_at=now,
         )
         db.add(match)
     await db.commit()

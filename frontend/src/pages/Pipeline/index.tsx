@@ -12,6 +12,8 @@ interface PipelineEntry {
   other_gender: string | null;
   other_personality_tags: string[] | null;
   questions_completed?: number;
+  bloom_type?: string;
+  days_since_activity?: number;
 }
 
 interface SetupStatus {
@@ -143,6 +145,8 @@ export function PipelinePage() {
             matchId={e.match_id}
             round={e.round}
             status={s}
+            bloomType={e.bloom_type}
+            daysSinceLastActivity={e.days_since_activity}
             size={100}
           />
           <div className="flex-1 min-w-0 pt-2">

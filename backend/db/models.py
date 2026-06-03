@@ -89,6 +89,8 @@ class Match(Base):
     current_round: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(20), default="active")
     venue_suggestions: Mapped[Optional[list]] = mapped_column(JSON, default=None)
+    bloom_type: Mapped[Optional[str]] = mapped_column(String(30), default=None)  # plant species: sakura, rose, oak, etc.
+    last_activity_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), default=None)  # for bloom decay
     format_vote_a: Mapped[Optional[str]] = mapped_column(String(20), default=None)  # video | in_person | either
     format_vote_b: Mapped[Optional[str]] = mapped_column(String(20), default=None)
     availability_a: Mapped[Optional[list]] = mapped_column(JSON, default=None)  # [{start, end}]

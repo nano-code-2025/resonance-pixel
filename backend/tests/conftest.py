@@ -84,6 +84,7 @@ async def seed_match(db, seed_user, seed_candidate) -> Match:
         user_a_id=seed_user.id,
         user_b_id=seed_candidate.id,
         approach_id=approach.id,
+        bloom_type="sakura",
     )
     db.add(match)
     await db.commit()

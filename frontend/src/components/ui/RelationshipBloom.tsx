@@ -11,10 +11,21 @@
  */
 import { useRef, useEffect, useMemo } from "react";
 
+/**
+ * Plant species from the Pixel Plant Library (12 species).
+ * Each species has unique growth form, colors, and particle effects.
+ * See docs/frontend-design-spec.md section 5.2.1 for full catalog.
+ */
+type BloomSpecies =
+  | "sakura" | "rose" | "wisteria" | "peony" | "lotus"
+  | "oak" | "sunflower" | "lavender" | "dandelion"
+  | "plumeria" | "bougainvillea" | "glow_mushroom";
+
 interface Props {
   matchId: string;
   round: number; // 0 = just matched, 1, 2, 3
   status: "active" | "offer_pending" | "confirmed" | "closed";
+  bloomType?: BloomSpecies | string; // plant species — defaults to palette-only variation
   daysSinceLastActivity?: number;
   size?: number; // visual width in px (default 140)
 }
@@ -97,6 +108,7 @@ export function RelationshipBloom({
   matchId,
   round,
   status,
+  bloomType: _bloomType,  // TODO: Phase 2 — species-specific rendering (Terraria-style)
   daysSinceLastActivity = 0,
   size = 140,
 }: Props) {

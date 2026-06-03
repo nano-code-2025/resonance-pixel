@@ -288,6 +288,8 @@ async def end_session(
     else:
         session.rating_b = rating
         session.advance_b = advance
+    # Update last activity for bloom decay tracking
+    match.last_activity_at = datetime.now(timezone.utc)
     # Finalize when both have rated
     if session.advance_a is not None and session.advance_b is not None:
         session.completed_at = datetime.now(timezone.utc)
