@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from api import auth, profile, match, pool, approaches
+from api import auth, profile, match, pool, approaches, sessions
 
 load_dotenv()
 
@@ -23,6 +23,7 @@ app.include_router(profile.router, prefix="/api/profile", tags=["画像"])
 app.include_router(match.router,   prefix="/api/match",   tags=["匹配"])
 app.include_router(pool.router,    prefix="/api/pool",    tags=["Pool"])
 app.include_router(approaches.router, prefix="/api/approaches", tags=["Approaches"])
+app.include_router(sessions.router, prefix="/api/sessions", tags=["Sessions"])
 
 
 @app.get("/health")
