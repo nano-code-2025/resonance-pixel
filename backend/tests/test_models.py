@@ -6,11 +6,11 @@ def test_user_model_has_required_fields():
     assert u.visibility == "active"  # default
 
 def test_approach_has_expires_at():
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     a = Approach(initiator_id="x", receiver_id="y", tier="standard")
     assert a.expires_at is not None
     # expires_at should be ~72h in the future
-    delta = a.expires_at - datetime.utcnow()
+    delta = a.expires_at - datetime.now(timezone.utc)
     assert timedelta(hours=71) < delta < timedelta(hours=73)
 
 def test_offer_unique_constraint_defined():
