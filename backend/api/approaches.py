@@ -13,6 +13,7 @@ from app_config import settings
 from db.models import Approach, Match, User
 from db.session import get_db
 from services.approach_writer import draft_approach_message
+from services.payment_service import charge_approach
 from services.pool_curator import profile_to_text
 
 router = APIRouter()
@@ -35,6 +36,63 @@ class RespondRequest(BaseModel):
 
 class RateRequest(BaseModel):
     rating: str  # "good" | "bad"
+
+
+@router.get("/received")
+async def get_received_approaches(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List pending approaches received by the current user."""
+    result = await db.execute(
+        select(Approach, User)
+        .join(User, User.id == Approach.initiator_id)
+        .where(Approach.receiver_id == current_user.id)
+        .where(Approach.status == "pending")
+        .order_by(Approach.created_at.desc())
+    )
+    rows = result.all()
+    return [
+        {
+            "approach_id": a.id,
+            "ai_message": a.ai_message,
+            "tier": a.tier,
+            "created_at": a.created_at.isoformat(),
+            "initiator": {
+                "user_id": u.id,
+                "age": u.age,
+                "city": u.city,
+                "gender": u.gender,
+                "personality_tags": u.personality_tags,
+                "selfie_url": u.selfie_url,
+            },
+        }
+        for a, u in rows
+    ]
+
+
+@router.get("/sent")
+async def get_sent_approaches(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List approaches sent by the current user and their status."""
+    result = await db.execute(
+        select(Approach)
+        .where(Approach.initiator_id == current_user.id)
+        .order_by(Approach.created_at.desc())
+        .limit(20)
+    )
+    approaches = result.scalars().all()
+    return [
+        {
+            "approach_id": a.id,
+            "tier": a.tier,
+            "status": a.status,
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in approaches
+    ]
 
 
 @router.post("/draft")
@@ -60,17 +118,22 @@ async def send_approach(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Persist Approach after user confirms the drafted message."""
+    """Persist Approach after user confirms the drafted message. Charges via payment stub."""
     await _check_rate_limit(current_user.id, db)
     candidate = await db.get(User, req_body.candidate_id)
     if not candidate or candidate.deleted_at:
         raise HTTPException(404, "Candidate not found")
+    try:
+        payment_id = await charge_approach(current_user.id, req_body.tier)
+    except RuntimeError as e:
+        raise HTTPException(402, f"Payment failed: {e}")
     approach = Approach(
         initiator_id=current_user.id,
         receiver_id=req_body.candidate_id,
         tier=req_body.tier,
         ai_message=req_body.confirmed_message[:150],
         status="pending",
+        payment_id=payment_id,
     )
     db.add(approach)
     await db.commit()

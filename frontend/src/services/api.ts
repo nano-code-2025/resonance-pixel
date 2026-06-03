@@ -59,6 +59,25 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ response }),
     }),
+  getReceivedApproaches: () =>
+    apiFetch<{
+      approach_id: string;
+      ai_message: string;
+      tier: string;
+      created_at: string;
+      initiator: {
+        user_id: string;
+        age: number | null;
+        city: string | null;
+        gender: string | null;
+        personality_tags: string[] | null;
+        selfie_url: string | null;
+      };
+    }[]>("/api/approaches/received"),
+  getSentApproaches: () =>
+    apiFetch<{ approach_id: string; tier: string; status: string; created_at: string }[]>(
+      "/api/approaches/sent"
+    ),
   getPipeline: () =>
     apiFetch<{ pursuing: unknown[]; being_found: unknown[] }>("/api/pipeline"),
   createSession: (match_id: string, session_type = "in_person") =>
