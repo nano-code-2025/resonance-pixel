@@ -11,7 +11,7 @@ from db.models import Match
 from db.models import Session as DBSession  # alias to avoid shadowing AsyncSession
 from db.models import User
 from db.session import get_db
-from services.session_guide import get_session_state, mark_question_completed
+from services.session_guide import get_session_state, mark_question_completed, skip_question
 
 router = APIRouter()
 
@@ -60,12 +60,15 @@ async def get_state(
     current_q = questions[idx] if idx < len(questions) else None
     return {
         "session_id": session_id,
+        "match_id": session.match_id,
         "current_question_index": idx,
         "current_question": current_q,
         "questions_completed": state["questions_completed"],
+        "total_questions": len(questions),
         "round_number": session.round_number,
         "is_host": current_user.id == session.host_user_id,
         "session_type": session.session_type,
+        "feishu_meeting_url": session.feishu_meeting_url,
     }
 
 
@@ -82,6 +85,25 @@ async def advance_question(
     if current_user.id != session.host_user_id:
         raise HTTPException(403, "Only host can advance questions")
     state = await mark_question_completed(session_id, question_id)
+    return {
+        "questions_completed": state["questions_completed"],
+        "current_question_index": state["current_question_index"],
+    }
+
+
+@router.post("/{session_id}/skip")
+async def skip_current_question(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Host skips the current question (not added to completed list)."""
+    session = await db.get(DBSession, session_id)
+    if not session:
+        raise HTTPException(404)
+    if current_user.id != session.host_user_id:
+        raise HTTPException(403, "Only host can skip questions")
+    state = await skip_question(session_id)
     return {
         "questions_completed": state["questions_completed"],
         "current_question_index": state["current_question_index"],

@@ -5,6 +5,7 @@ import { PoolPage } from "./pages/Pool";
 import { PipelinePage } from "./pages/Pipeline";
 import { InboxPage } from "./pages/Inbox";
 import { SessionPage } from "./pages/Session";
+import { DemoPage } from "./pages/Demo";
 import { api } from "./services/api";
 
 type Page = "pool" | "pipeline" | "inbox" | "session";
@@ -16,6 +17,11 @@ const NAV: { key: Page; label: string }[] = [
 ];
 
 export default function App() {
+  // Demo mode: /#demo shows all components with mock data
+  if (window.location.hash === "#demo") {
+    return <DemoPage />;
+  }
+
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activePage, setActivePage] = useState<Page>("pool");
@@ -58,7 +64,12 @@ export default function App() {
 
   const renderPage = () => {
     if (activePage === "session" && activeSessionId) {
-      return <SessionPage sessionId={activeSessionId} />;
+      return (
+        <SessionPage
+          sessionId={activeSessionId}
+          onExit={() => { setActiveSessionId(null); setActivePage("pipeline"); }}
+        />
+      );
     }
     if (activePage === "pipeline") return <PipelinePage />;
     if (activePage === "inbox") return <InboxPage />;
@@ -79,6 +90,7 @@ export default function App() {
       }}
     >
       {renderPage()}
+      {activePage !== "session" && (
       <nav className="fixed bottom-0 left-0 right-0 bg-[#0D0D1A] border-t border-[#2A2A4A] flex">
         {NAV.map(({ key, label }) => (
           <button
@@ -97,6 +109,7 @@ export default function App() {
           </button>
         ))}
       </nav>
+      )}
     </div>
   );
 }

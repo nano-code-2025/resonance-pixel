@@ -36,3 +36,11 @@ async def mark_question_completed(session_id: str, question_id: int) -> dict:
     )
     await set_session_state(session_id, state)
     return state
+
+
+async def skip_question(session_id: str) -> dict:
+    """Advance question index without adding to completed list (skip)."""
+    state = await get_session_state(session_id)
+    state["current_question_index"] = state.get("current_question_index", 0) + 1
+    await set_session_state(session_id, state)
+    return state

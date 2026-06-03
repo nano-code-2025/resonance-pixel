@@ -91,6 +91,11 @@ export const api = {
       `/api/sessions/${id}/advance`,
       { method: "POST", body: JSON.stringify({ question_id }) }
     ),
+  skipQuestion: (id: string) =>
+    apiFetch<{ questions_completed: number[]; current_question_index: number }>(
+      `/api/sessions/${id}/skip`,
+      { method: "POST" }
+    ),
   endSession: (id: string, rating: number, advance: boolean) =>
     apiFetch<{ ok: boolean; both_rated: boolean }>(`/api/sessions/${id}/end`, {
       method: "POST",
