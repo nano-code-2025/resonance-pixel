@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_db
 from db.models import User
 from models.schemas import ProfileUpdate, ProfileResponse
 from api.auth import get_current_user
+from services.cos_service import upload_selfie
 
 router = APIRouter()
 
@@ -22,6 +23,26 @@ async def update_profile(
 ):
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(current_user, field, value)
+    await db.commit()
+    await db.refresh(current_user)
+    return _to_response(current_user)
+
+
+@router.post("/selfie", response_model=ProfileResponse)
+async def upload_selfie_endpoint(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    content_type = file.content_type or ""
+    data = await file.read()
+    try:
+        url = await upload_selfie(data, content_type, current_user.id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    current_user.selfie_url = url
     await db.commit()
     await db.refresh(current_user)
     return _to_response(current_user)

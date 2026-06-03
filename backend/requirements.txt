@@ -16,3 +16,4 @@ pytest-asyncio>=0.23
 pytest-mock>=3.14
 anyio>=4.0
 tencentcloud-sdk-python-sms>=3.0
+cos-python-sdk-v5>=1.9
