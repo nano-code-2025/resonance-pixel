@@ -116,4 +116,39 @@ export const api = {
       "/api/meetings/schedule",
       { method: "POST", body: JSON.stringify({ match_id, start_time }) }
     ),
+  // Match setup
+  voteFormat: (match_id: string, preference: string) =>
+    apiFetch<{ my_vote: string; both_voted: boolean; resolved_format: string | null }>(
+      `/api/matches/${match_id}/vote`,
+      { method: "POST", body: JSON.stringify({ preference }) }
+    ),
+  submitAvailability: (match_id: string, slots: { start: string; end: string }[]) =>
+    apiFetch<{ submitted: boolean; both_submitted: boolean; overlap: unknown; scheduled_at: string | null }>(
+      `/api/matches/${match_id}/availability`,
+      { method: "POST", body: JSON.stringify({ slots }) }
+    ),
+  getSetupStatus: (match_id: string) =>
+    apiFetch<{
+      my_vote: string | null;
+      other_voted: boolean;
+      resolved_format: string | null;
+      my_availability: unknown;
+      other_availability_submitted: boolean;
+      scheduled_at: string | null;
+    }>(`/api/matches/${match_id}/setup-status`),
+  // Session: swap + answers
+  swapQuestion: (session_id: string, question_index: number) =>
+    apiFetch<{ swapped_index: number; new_question: unknown; swap_count: number; swaps_remaining: number }>(
+      `/api/sessions/${session_id}/swap`,
+      { method: "POST", body: JSON.stringify({ question_index }) }
+    ),
+  saveAnswer: (session_id: string, question_id: number, answer_text: string) =>
+    apiFetch<{ answer_id: string; ok: boolean }>(
+      `/api/sessions/${session_id}/answer`,
+      { method: "POST", body: JSON.stringify({ question_id, answer_text }) }
+    ),
+  getAnswers: (session_id: string) =>
+    apiFetch<{ answers: { answer_id: string; question_id: number; answer_text: string; created_at: string }[] }>(
+      `/api/sessions/${session_id}/answers`
+    ),
 };

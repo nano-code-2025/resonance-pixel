@@ -89,6 +89,11 @@ class Match(Base):
     current_round: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(20), default="active")
     venue_suggestions: Mapped[Optional[list]] = mapped_column(JSON, default=None)
+    format_vote_a: Mapped[Optional[str]] = mapped_column(String(20), default=None)  # video | in_person | either
+    format_vote_b: Mapped[Optional[str]] = mapped_column(String(20), default=None)
+    availability_a: Mapped[Optional[list]] = mapped_column(JSON, default=None)  # [{start, end}]
+    availability_b: Mapped[Optional[list]] = mapped_column(JSON, default=None)
+    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     def __init__(self, **kwargs):
@@ -114,6 +119,8 @@ class Session(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), default=None)
     feishu_meeting_url: Mapped[Optional[str]] = mapped_column(String, default=None)
     questions_completed: Mapped[Optional[list]] = mapped_column(JSON, default=_highlights_default)
+    selected_question_ids: Mapped[Optional[list]] = mapped_column(JSON, default=None)  # AI-selected 5 question IDs
+    swap_count: Mapped[int] = mapped_column(Integer, default=0)
     rating_a: Mapped[Optional[int]] = mapped_column(Integer, default=None)
     rating_b: Mapped[Optional[int]] = mapped_column(Integer, default=None)
     advance_a: Mapped[Optional[bool]] = mapped_column(Boolean, default=None)
@@ -164,4 +171,21 @@ class UserCandidate(Base):
             kwargs['highlights'] = _highlights_default()
         if 'scored_at' not in kwargs:
             kwargs['scored_at'] = datetime.now(timezone.utc)
+        super().__init__(**kwargs)
+
+
+class QuestionAnswer(Base):
+    __tablename__ = "question_answers"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id"), nullable=False)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    question_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    answer_text: Mapped[str] = mapped_column(String(500), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    def __init__(self, **kwargs):
+        if 'id' not in kwargs:
+            kwargs['id'] = _uuid()
+        if 'created_at' not in kwargs:
+            kwargs['created_at'] = datetime.now(timezone.utc)
         super().__init__(**kwargs)

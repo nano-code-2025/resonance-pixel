@@ -1,9 +1,9 @@
 /**
  * Session page — the heart of Resonance.
  *
- * Two people sit together. The app guides them through Arthur Aron's
- * 36 progressive questions. A pixel-art plant grows in the background
- * as they answer, question by question.
+ * Two people sit together (or on video). The app guides them through
+ * 5 AI-curated questions from Arthur Aron's 36. A pixel-art plant grows
+ * in the background as they answer, question by question.
  *
  * The experience should feel intimate, warm, unhurried — like a fairy tale.
  */
@@ -27,12 +27,13 @@ interface SessionState {
   is_host: boolean;
   session_type: string;
   feishu_meeting_url: string | null;
+  swap_count: number;
+  swaps_remaining: number;
 }
 
 const ROUND_NAMES = ["", "初见", "深聊", "见见我的圈子"];
 const ROUND_DURATIONS_MIN = [0, 45, 90, 0]; // 0 = no timer
 
-// 7-segment pixel timer display
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -70,9 +71,12 @@ export function SessionPage({ sessionId, onExit }: Props) {
   const [rating, setRating] = useState(0);
   const [showRating, setShowRating] = useState(false);
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(-1); // -1 = not started
+  const [timerSeconds, setTimerSeconds] = useState(-1);
   const startTimeRef = useRef<number>(0);
   const [transitioning, setTransitioning] = useState(false);
+  const [answerText, setAnswerText] = useState("");
+  const [answerSaved, setAnswerSaved] = useState(false);
+  const [showAnswerInput, setShowAnswerInput] = useState(false);
 
   const questionText = state?.current_question?.localized_zh || state?.current_question?.zh || "";
   const { displayed, done: typeDone, skip: skipType } = useTypewriter(questionText);
@@ -89,11 +93,18 @@ export function SessionPage({ sessionId, onExit }: Props) {
     return () => clearInterval(interval);
   }, [fetchState]);
 
+  // Reset answer state when question changes
+  useEffect(() => {
+    setAnswerText("");
+    setAnswerSaved(false);
+    setShowAnswerInput(false);
+  }, [state?.current_question_index]);
+
   // Timer countdown
   useEffect(() => {
     if (!state) return;
     const duration = ROUND_DURATIONS_MIN[state.round_number] * 60;
-    if (duration <= 0) return; // no timer for Round 3
+    if (duration <= 0) return;
 
     if (startTimeRef.current === 0) {
       startTimeRef.current = Date.now();
@@ -134,6 +145,24 @@ export function SessionPage({ sessionId, onExit }: Props) {
     }, 300);
   };
 
+  // Swap current question for another
+  const swapQ = async () => {
+    if (!state || state.swaps_remaining <= 0) return;
+    setTransitioning(true);
+    await api.swapQuestion(sessionId, state.current_question_index);
+    setTimeout(async () => {
+      await fetchState();
+      setTransitioning(false);
+    }, 300);
+  };
+
+  // Save answer
+  const saveAnswer = async () => {
+    if (!state?.current_question || !answerText.trim()) return;
+    await api.saveAnswer(sessionId, state.current_question.id, answerText.trim());
+    setAnswerSaved(true);
+  };
+
   // End session
   const endSession = async (shouldAdvance: boolean) => {
     await api.endSession(sessionId, rating, shouldAdvance);
@@ -160,7 +189,7 @@ export function SessionPage({ sessionId, onExit }: Props) {
 
   return (
     <div className="pixel-grid min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background bloom — large, behind everything */}
+      {/* Background bloom */}
       <div className="absolute inset-0 flex items-center justify-center opacity-15 pointer-events-none">
         <RelationshipBloom
           matchId={state.match_id}
@@ -179,6 +208,7 @@ export function SessionPage({ sessionId, onExit }: Props) {
               <h1 className="text-[#C4956A] font-mono text-sm">{roundName}</h1>
               <p className="text-[#2A2A4A] font-mono text-[10px]">
                 第{state.round_number}轮 · {state.session_type === "feishu_call" ? "视频" : "面对面"}
+                {" · "}AI精选{total}题
               </p>
             </div>
 
@@ -191,7 +221,7 @@ export function SessionPage({ sessionId, onExit }: Props) {
               </div>
             )}
 
-            {/* Small bloom (top-right) */}
+            {/* Small bloom */}
             <RelationshipBloom
               matchId={state.match_id}
               round={state.round_number}
@@ -201,14 +231,14 @@ export function SessionPage({ sessionId, onExit }: Props) {
           </div>
 
           {/* Question progress dots */}
-          <div className="flex gap-0.5">
+          <div className="flex gap-1">
             {Array.from({ length: total }).map((_, i) => {
               const isCompleted = i < progress;
               const isCurrent = i === state.current_question_index;
               return (
                 <div
                   key={i}
-                  className={`h-1 flex-1 transition-all duration-300 ${
+                  className={`h-1.5 flex-1 transition-all duration-300 ${
                     isCompleted
                       ? "bg-[#C4956A]"
                       : isCurrent
@@ -221,7 +251,7 @@ export function SessionPage({ sessionId, onExit }: Props) {
           </div>
         </header>
 
-        {/* Question area — centered, the emotional core */}
+        {/* Question area */}
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-4">
           {q ? (
             <div
@@ -229,14 +259,22 @@ export function SessionPage({ sessionId, onExit }: Props) {
                 transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
               }`}
             >
-              {/* Question number */}
-              <div className="text-center mb-4">
+              {/* Question number + swap count */}
+              <div className="text-center mb-4 flex items-center justify-center gap-3">
                 <span className="text-[#2A2A4A] font-mono text-xs">
-                  Q{q.id}
+                  Q{q.id} · {progress + 1}/{total}
                 </span>
+                {state.swaps_remaining > 0 && (
+                  <button
+                    onClick={swapQ}
+                    className="text-[10px] font-mono text-[#4A8A8A] border border-[#2A2A4A] px-1.5 py-0.5 hover:border-[#4A8A8A] transition-colors"
+                  >
+                    换一题 ({state.swaps_remaining})
+                  </button>
+                )}
               </div>
 
-              {/* Question card — large, centered, typewriter reveal */}
+              {/* Question card */}
               <div className="pixel-border bg-[#14142A]/90 backdrop-blur-sm p-8">
                 <p
                   className="text-[#F0EDE8] text-lg leading-relaxed font-mono text-center cursor-pointer"
@@ -247,10 +285,41 @@ export function SessionPage({ sessionId, onExit }: Props) {
                 </p>
               </div>
 
-              {/* Gentle hint */}
-              <p className="text-center text-[10px] text-[#2A2A4A] font-mono mt-3">
-                不用急，慢慢聊
-              </p>
+              {/* Answer recording (optional, collapsible) */}
+              <div className="mt-3">
+                {!showAnswerInput ? (
+                  <button
+                    onClick={() => setShowAnswerInput(true)}
+                    className="w-full text-center text-[10px] text-[#2A2A4A] font-mono hover:text-[#A09CA0] transition-colors"
+                  >
+                    记录你的想法（仅自己可见）
+                  </button>
+                ) : (
+                  <div className="pixel-border bg-[#14142A]/60 p-3">
+                    <textarea
+                      value={answerText}
+                      onChange={(e) => setAnswerText(e.target.value.slice(0, 500))}
+                      placeholder="写下你的感受..."
+                      disabled={answerSaved}
+                      className="w-full bg-transparent text-[#F0EDE8] font-mono text-xs resize-none outline-none placeholder:text-[#2A2A4A] h-16"
+                    />
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[9px] text-[#2A2A4A] font-mono">{answerText.length}/500</span>
+                      {answerSaved ? (
+                        <span className="text-[10px] text-[#4A8A8A] font-mono">已保存</span>
+                      ) : (
+                        <button
+                          onClick={saveAnswer}
+                          disabled={!answerText.trim()}
+                          className="text-[10px] font-mono text-[#C4956A] disabled:text-[#2A2A4A]"
+                        >
+                          保存
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             /* All questions done */
@@ -265,13 +334,13 @@ export function SessionPage({ sessionId, onExit }: Props) {
                 本轮问题已全部聊完
               </p>
               <p className="text-[#A09CA0] font-mono text-xs">
-                你们一起走过了 {progress} 个问题 ✦
+                你们一起走过了 {progress} 个问题
               </p>
             </div>
           )}
         </main>
 
-        {/* Controls — bottom */}
+        {/* Controls */}
         <footer className="px-4 pb-6 pt-2">
           {state.is_host && q && (
             <div className="flex gap-2 mb-2">
@@ -299,7 +368,6 @@ export function SessionPage({ sessionId, onExit }: Props) {
             </div>
           )}
 
-          {/* Feishu meeting link (if video call session) */}
           {state.feishu_meeting_url && (
             <a
               href={state.feishu_meeting_url}
@@ -324,9 +392,7 @@ export function SessionPage({ sessionId, onExit }: Props) {
       {showTimerPrompt && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-40">
           <div className="bg-[#14142A] pixel-border p-6 w-full max-w-xs text-center">
-            <p className="text-[#F0EDE8] font-mono text-sm mb-2">
-              时间到了
-            </p>
+            <p className="text-[#F0EDE8] font-mono text-sm mb-2">时间到了</p>
             <p className="text-[#A09CA0] font-mono text-xs mb-4">
               今天聊到这里？还是再继续一会儿？
             </p>
@@ -352,7 +418,6 @@ export function SessionPage({ sessionId, onExit }: Props) {
       {showRating && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-[#14142A] pixel-border p-6 w-full max-w-xs">
-            {/* Bloom in rating modal */}
             <div className="flex justify-center mb-4">
               <RelationshipBloom
                 matchId={state.match_id}
@@ -369,7 +434,6 @@ export function SessionPage({ sessionId, onExit }: Props) {
               你的评分对方不会看到
             </p>
 
-            {/* Star rating */}
             <div className="flex justify-center gap-2 mb-6">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
@@ -386,7 +450,6 @@ export function SessionPage({ sessionId, onExit }: Props) {
               ))}
             </div>
 
-            {/* Decision */}
             <p className="text-[#A09CA0] font-mono text-[10px] text-center mb-3">
               想继续了解TA吗？
             </p>

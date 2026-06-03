@@ -1,4 +1,5 @@
-import useSWR from "swr";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import { api } from "../../services/api";
 import { RelationshipBloom } from "../../components/ui/RelationshipBloom";
 import { RoundProgress } from "../../components/ui/RoundProgress";
@@ -13,10 +14,112 @@ interface PipelineEntry {
   questions_completed?: number;
 }
 
+interface SetupStatus {
+  my_vote: string | null;
+  other_voted: boolean;
+  resolved_format: string | null;
+  scheduled_at: string | null;
+}
+
+const FORMAT_LABELS: Record<string, string> = {
+  video: "视频通话",
+  in_person: "线下见面",
+  either: "都可以",
+};
+
+const RESOLVED_LABELS: Record<string, string> = {
+  feishu_call: "飞书视频",
+  in_person: "线下见面",
+};
+
+function MatchSetup({ matchId, onStartSession }: { matchId: string; onStartSession: (format: string) => void }) {
+  const { data: status, mutate: refreshStatus } = useSWR<SetupStatus>(
+    `/match-setup/${matchId}`,
+    () => api.getSetupStatus(matchId) as Promise<SetupStatus>,
+  );
+  const [voting, setVoting] = useState(false);
+
+  const vote = async (preference: string) => {
+    setVoting(true);
+    try {
+      await api.voteFormat(matchId, preference);
+      await refreshStatus();
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  if (!status) return <div className="text-[#2A2A4A] font-mono text-[10px]">加载中...</div>;
+
+  // Step 1: Format vote
+  if (!status.my_vote) {
+    return (
+      <div className="mt-3 pixel-border bg-[#0D0D1A] p-3">
+        <p className="text-[#A09CA0] font-mono text-xs mb-2">选择见面方式</p>
+        <div className="flex gap-2">
+          {(["video", "in_person", "either"] as const).map((pref) => (
+            <button
+              key={pref}
+              onClick={() => vote(pref)}
+              disabled={voting}
+              className="flex-1 py-2 border border-[#2A2A4A] text-[#A09CA0] font-mono text-[10px] hover:border-[#C4956A] hover:text-[#C4956A] transition-colors disabled:opacity-50"
+            >
+              {FORMAT_LABELS[pref]}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Waiting for other person's vote
+  if (!status.resolved_format) {
+    return (
+      <div className="mt-3 pixel-border bg-[#0D0D1A] p-3">
+        <p className="text-[#A09CA0] font-mono text-xs">
+          你选了「{FORMAT_LABELS[status.my_vote]}」
+        </p>
+        <p className="text-[#2A2A4A] font-mono text-[10px] mt-1">
+          <span className="inline-block animate-pulse mr-1">●</span>
+          等待对方选择...
+        </p>
+      </div>
+    );
+  }
+
+  // Step 3: Both voted — show resolved format + start button
+  return (
+    <div className="mt-3 pixel-border bg-[#0D0D1A] p-3">
+      <p className="text-[#A09CA0] font-mono text-xs mb-2">
+        {RESOLVED_LABELS[status.resolved_format]}
+        {status.scheduled_at && (
+          <span className="ml-2 text-[#C4956A]">
+            {new Date(status.scheduled_at).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          </span>
+        )}
+      </p>
+      <button
+        onClick={() => onStartSession(status.resolved_format!)}
+        className="w-full pixel-btn bg-[#C4956A] text-[#0D0D1A] py-2.5 font-mono text-xs"
+      >
+        开始对话
+      </button>
+    </div>
+  );
+}
+
 export function PipelinePage() {
   const { data, isLoading } = useSWR("/pipeline", () =>
     api.getPipeline() as Promise<{ pursuing: PipelineEntry[]; being_found: PipelineEntry[] }>
   );
+
+  const startSession = async (matchId: string, format: string) => {
+    const sessionType = format === "feishu_call" ? "feishu_call" : "in_person";
+    const result = await api.createSession(matchId, sessionType);
+    // Navigate to session via App-level callback
+    const el = document.querySelector("[data-navigate-session]") as HTMLElement & { navigateToSession?: (id: string) => void };
+    el?.navigateToSession?.(result.session_id);
+  };
 
   if (isLoading) {
     return (
@@ -31,7 +134,6 @@ export function PipelinePage() {
 
   const renderEntry = (e: PipelineEntry) => {
     const s = e.status as "active" | "offer_pending" | "confirmed" | "closed";
-    const qTotal = e.round === 1 ? 12 : e.round === 2 ? 12 : 12;
 
     return (
       <div key={e.match_id} className="pixel-border bg-[#14142A] p-4">
@@ -70,9 +172,17 @@ export function PipelinePage() {
             currentRound={e.round}
             status={s}
             questionsCompleted={e.questions_completed ?? 0}
-            questionsTotal={qTotal}
+            questionsTotal={5}
           />
         </div>
+
+        {/* Setup flow for active matches */}
+        {s === "active" && (
+          <MatchSetup
+            matchId={e.match_id}
+            onStartSession={(format) => startSession(e.match_id, format)}
+          />
+        )}
       </div>
     );
   };
