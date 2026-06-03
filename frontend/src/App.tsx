@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AuthPage } from "./pages/Auth";
+import { OnboardingPage } from "./pages/Onboarding";
 import { PoolPage } from "./pages/Pool";
 import { PipelinePage } from "./pages/Pipeline";
 import { SessionPage } from "./pages/Session";
@@ -8,11 +9,23 @@ type Page = "pool" | "pipeline" | "session";
 
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [activePage, setActivePage] = useState<Page>("pool");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   if (!token) {
-    return <AuthPage onLogin={() => setToken(localStorage.getItem("token"))} />;
+    return (
+      <AuthPage
+        onLogin={(isNew: boolean) => {
+          setToken(localStorage.getItem("token"));
+          setShowOnboarding(isNew);
+        }}
+      />
+    );
+  }
+
+  if (showOnboarding) {
+    return <OnboardingPage onComplete={() => setShowOnboarding(false)} />;
   }
 
   const renderPage = () => {

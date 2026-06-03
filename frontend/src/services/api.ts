@@ -2,10 +2,11 @@ const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("token");
+  const isFormData = options.body instanceof FormData;
   const resp = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers ?? {}),
     },
@@ -34,6 +35,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+  uploadSelfie: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return apiFetch<Record<string, unknown>>("/api/profile/selfie", {
+      method: "POST",
+      body: form,
+    });
+  },
   getPool: () => apiFetch<unknown[]>("/api/pool"),
   draftApproach: (candidate_id: string, tier: string) =>
     apiFetch<{ ai_message: string; candidate_id: string; tier: string }>("/api/approaches/draft", {

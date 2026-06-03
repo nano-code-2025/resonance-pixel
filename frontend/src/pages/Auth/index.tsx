@@ -3,7 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../services/api";
 
 interface Props {
-  onLogin: () => void;
+  onLogin: (isNew: boolean) => void;
 }
 
 export function AuthPage({ onLogin }: Props) {
@@ -31,8 +31,8 @@ export function AuthPage({ onLogin }: Props) {
     setLoading(true);
     setError("");
     try {
-      await login(phone, otp);
-      onLogin();
+      const result = await login(phone, otp);
+      onLogin(result.is_new);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "验证失败");
     } finally {
