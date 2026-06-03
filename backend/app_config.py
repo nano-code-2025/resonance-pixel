@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     sms_sdk_app_id: str = ""
     sms_sign_name: str = ""
     sms_template_id: str = ""
+    # Feishu (飞书)
+    feishu_app_id: str = ""
+    feishu_app_secret: str = ""
     # Tencent COS
     cos_secret_id: str = ""
     cos_secret_key: str = ""

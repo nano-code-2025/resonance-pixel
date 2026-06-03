@@ -1,6 +1,7 @@
 import useSWR from "swr";
 import { api } from "../../services/api";
-import { PixelAvatar } from "../../components/ui/PixelAvatar";
+import { RelationshipBloom } from "../../components/ui/RelationshipBloom";
+import { RoundProgress } from "../../components/ui/RoundProgress";
 
 interface PipelineEntry {
   match_id: string;
@@ -9,14 +10,8 @@ interface PipelineEntry {
   other_city: string | null;
   other_gender: string | null;
   other_personality_tags: string[] | null;
+  questions_completed?: number;
 }
-
-const ROUND_LABEL = ["", "初见", "深聊", "见见我的圈子"];
-const STATUS_LABEL: Record<string, string> = {
-  active: "进行中",
-  offer_pending: "等待回应",
-  confirmed: "在一起了",
-};
 
 export function PipelinePage() {
   const { data, isLoading } = useSWR("/pipeline", () =>
@@ -31,44 +26,73 @@ export function PipelinePage() {
     );
   }
 
-  const renderEntry = (e: PipelineEntry, label: string) => (
-    <div key={e.match_id} className="pixel-border bg-[#14142A] p-4 flex items-center gap-4">
-      <PixelAvatar userId={e.match_id} pixelSize={5} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-[#C4956A] text-xs font-mono">{ROUND_LABEL[e.round]} · Round {e.round}</span>
-          <span className="text-[#A09CA0] text-xs font-mono">{STATUS_LABEL[e.status] ?? e.status}</span>
+  const all = [...(data?.pursuing ?? []), ...(data?.being_found ?? [])];
+  const isPursuing = new Set((data?.pursuing ?? []).map(e => e.match_id));
+
+  const renderEntry = (e: PipelineEntry) => {
+    const s = e.status as "active" | "offer_pending" | "confirmed" | "closed";
+    const qTotal = e.round === 1 ? 12 : e.round === 2 ? 12 : 12;
+
+    return (
+      <div key={e.match_id} className="pixel-border bg-[#14142A] p-4">
+        {/* Bloom + info row */}
+        <div className="flex gap-4 items-start">
+          <RelationshipBloom
+            matchId={e.match_id}
+            round={e.round}
+            status={s}
+            size={100}
+          />
+          <div className="flex-1 min-w-0 pt-2">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[#F0EDE8] text-sm font-mono">
+                {e.other_city ?? "未知城市"}
+              </span>
+              <span className="text-[10px] font-mono px-1 border border-[#2A2A4A] text-[#A09CA0]">
+                {isPursuing.has(e.match_id) ? "我发起" : "TA发起"}
+              </span>
+            </div>
+            {(e.other_personality_tags ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1 mb-2">
+                {(e.other_personality_tags ?? []).slice(0, 3).map(tag => (
+                  <span key={tag} className="text-[10px] text-[#A09CA0] font-mono border border-[#2A2A4A] px-1">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <p className="text-[#A09CA0] text-xs font-mono">{e.other_city} · {label}</p>
+
+        {/* Progress bar */}
+        <div className="mt-3">
+          <RoundProgress
+            currentRound={e.round}
+            status={s}
+            questionsCompleted={e.questions_completed ?? 0}
+            questionsTotal={qTotal}
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <div className="pixel-grid min-h-screen p-4">
-      <h1 className="text-[#C4956A] font-mono text-base mb-4">我的管道</h1>
+    <div className="pixel-grid min-h-screen p-4 pb-20">
+      <h1 className="text-[#C4956A] font-mono text-base mb-4">我的缘分</h1>
 
-      {(data?.pursuing ?? []).length > 0 && (
-        <section className="mb-6">
-          <h2 className="text-[#A09CA0] text-xs font-mono mb-3 uppercase tracking-wider">我在追求</h2>
-          <div className="grid gap-3">
-            {data?.pursuing.map(e => renderEntry(e, "我发起"))}
-          </div>
-        </section>
+      {all.length === 0 && (
+        <div className="text-center py-16">
+          <p className="text-[#A09CA0] text-sm font-mono mb-2">暂无进行中的连接</p>
+          <p className="text-[#2A2A4A] text-xs font-mono">
+            去「发现」页面找到你的第一段缘分
+          </p>
+        </div>
       )}
 
-      {(data?.being_found ?? []).length > 0 && (
-        <section>
-          <h2 className="text-[#A09CA0] text-xs font-mono mb-3 uppercase tracking-wider">被找到了</h2>
-          <div className="grid gap-3">
-            {data?.being_found.map(e => renderEntry(e, "TA发起"))}
-          </div>
-        </section>
-      )}
-
-      {(data?.pursuing ?? []).length === 0 && (data?.being_found ?? []).length === 0 && (
-        <p className="text-[#A09CA0] text-sm font-mono text-center py-12">暂无进行中的连接</p>
-      )}
+      <div className="grid gap-4">
+        {all.map(renderEntry)}
+      </div>
     </div>
   );
 }

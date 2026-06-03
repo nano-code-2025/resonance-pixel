@@ -106,4 +106,9 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ response }),
     }),
+  scheduleMeeting: (match_id: string, start_time: string) =>
+    apiFetch<{ session_id: string; meeting_url: string; scheduled_at: string }>(
+      "/api/meetings/schedule",
+      { method: "POST", body: JSON.stringify({ match_id, start_time }) }
+    ),
 };
