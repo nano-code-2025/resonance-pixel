@@ -278,11 +278,41 @@ async def get_answers(
     }
 
 
+async def _build_paired_answers(
+    session_id: str, match_id: str, db: AsyncSession
+) -> list[dict]:
+    """Pair up answers from both users for recap generation."""
+    match = await db.get(Match, match_id)
+    if not match:
+        return []
+    answers_result = await db.execute(
+        select(QuestionAnswer)
+        .where(QuestionAnswer.session_id == session_id)
+        .order_by(QuestionAnswer.question_id)
+    )
+    all_answers = answers_result.scalars().all()
+
+    by_q: dict[int, dict] = {}
+    for a in all_answers:
+        if a.question_id not in by_q:
+            q = get_question(a.question_id)
+            by_q[a.question_id] = {
+                "question_text": q["localized_zh"] if q else f"问题{a.question_id}",
+                "answer_a": "",
+                "answer_b": "",
+            }
+        if a.user_id == match.user_a_id:
+            by_q[a.question_id]["answer_a"] = a.answer_text
+        else:
+            by_q[a.question_id]["answer_b"] = a.answer_text
+
+    return [v for v in by_q.values() if v["answer_a"] and v["answer_b"]]
+
+
 @router.post("/{session_id}/end")
 async def end_session(
     session_id: str,
-    rating: int,
-    advance: bool,
+    body: EndSessionRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -294,16 +324,26 @@ async def end_session(
         raise HTTPException(403)
     is_a = current_user.id == match.user_a_id
     if is_a:
-        session.rating_a = rating
-        session.advance_a = advance
+        session.rating_a = body.rating
+        session.advance_a = body.advance
     else:
-        session.rating_b = rating
-        session.advance_b = advance
+        session.rating_b = body.rating
+        session.advance_b = body.advance
     # Update last activity for bloom decay tracking
     match.last_activity_at = datetime.now(timezone.utc)
     # Finalize when both have rated
     if session.advance_a is not None and session.advance_b is not None:
         session.completed_at = datetime.now(timezone.utc)
+        # Trigger AI recap generation (best-effort, blocking — adds ~1-2s latency)
+        try:
+            paired = await _build_paired_answers(session_id, session.match_id, db)
+            if paired:
+                from services.recap_generator import generate_recap_from_answers
+                session.ai_recap = await generate_recap_from_answers(
+                    paired, session.round_number
+                )
+        except Exception:
+            pass  # recap is best-effort, don't fail the session end
         state = await get_session_state(session_id)
         session.questions_completed = state["questions_completed"]
         if session.advance_a and session.advance_b:
