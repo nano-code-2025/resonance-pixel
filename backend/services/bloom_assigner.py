@@ -52,7 +52,7 @@ def _hash_pair(a: str, b: str) -> int:
     return h
 
 
-def _classify_compatibility(
+def classify_compatibility(
     tags_a: list[str] | None,
     tags_b: list[str] | None,
     goals_a: str | None,
@@ -89,6 +89,21 @@ def _classify_compatibility(
     return "romantic"  # default
 
 
+# Maps internal bucket names to spec-defined API values
+_BUCKET_TO_API = {
+    "romantic": "romantic",
+    "grounded": "warm",
+    "contrast": "elegant",
+    "adventurous": "tropical",
+    "curious": "whimsical",
+}
+
+
+def compatibility_bucket_for_api(internal_bucket: str) -> str:
+    """Convert internal bucket name to API-facing value per UI spec."""
+    return _BUCKET_TO_API.get(internal_bucket, "romantic")
+
+
 def assign_bloom_type(
     user_a_id: str,
     user_b_id: str,
@@ -102,7 +117,7 @@ def assign_bloom_type(
     Returns one of the 12 species IDs. Deterministic for the same
     pair of users + compatibility bucket.
     """
-    bucket = _classify_compatibility(tags_a, tags_b, goals_a, goals_b)
+    bucket = classify_compatibility(tags_a, tags_b, goals_a, goals_b)
     pool = _SPECIES_POOLS.get(bucket, PLANT_SPECIES)
     h = _hash_pair(user_a_id, user_b_id)
     return pool[h % len(pool)]
