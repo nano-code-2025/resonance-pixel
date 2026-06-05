@@ -8,6 +8,7 @@ from api.auth import get_current_user
 from app_config import settings
 from db.models import Approach, User, UserCandidate
 from db.session import get_db
+from services.bloom_assigner import classify_compatibility, compatibility_bucket_for_api
 from services.pool_curator import (
     build_highlights,
     profile_to_text,
@@ -52,6 +53,14 @@ async def get_pool(
             "city": users_map[r.candidate_id].city,
             "gender": users_map[r.candidate_id].gender,
             "personality_tags": users_map[r.candidate_id].personality_tags,
+            "compatibility_bucket": compatibility_bucket_for_api(
+                classify_compatibility(
+                    tags_a=current_user.personality_tags,
+                    tags_b=users_map[r.candidate_id].personality_tags,
+                    goals_a=current_user.life_goals,
+                    goals_b=users_map[r.candidate_id].life_goals,
+                )
+            ),
         }
         for r in rows
         if r.candidate_id in users_map

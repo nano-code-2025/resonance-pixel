@@ -11,6 +11,7 @@ from db.models import Match
 from db.models import Session as DBSession  # noqa: avoid shadowing AsyncSession
 from db.models import User
 from db.session import get_db
+from services.bloom_stage import compute_bloom_stage
 
 router = APIRouter()
 
@@ -44,6 +45,16 @@ async def get_pipeline(
         last_act = m.last_activity_at or m.created_at
         days_inactive = (datetime.now(timezone.utc) - last_act).days if last_act else 0
 
+        # Get session for current round (needed for bloom_stage + questions_completed)
+        session_result = await db.execute(
+            select(DBSession)
+            .where(DBSession.match_id == m.id, DBSession.round_number == m.current_round)
+            .order_by(DBSession.id.desc())
+            .limit(1)
+        )
+        latest_session = session_result.scalar_one_or_none()
+        q_completed = len(latest_session.questions_completed or []) if latest_session else 0
+
         entry = {
             "match_id": m.id,
             "round": m.current_round,
@@ -53,6 +64,8 @@ async def get_pipeline(
             "other_personality_tags": other.personality_tags if other else [],
             "bloom_type": m.bloom_type or "oak",
             "days_since_activity": days_inactive,
+            "questions_completed": q_completed,
+            "bloom_stage": compute_bloom_stage(m, latest_session),
         }
         (pursuing if is_initiator else being_found).append(entry)
 

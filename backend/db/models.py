@@ -30,6 +30,7 @@ class User(Base):
     personality_tags: Mapped[Optional[list]] = mapped_column(JSON, default=None)
     requirements: Mapped[Optional[dict]] = mapped_column(JSON, default=None)
     enrichment: Mapped[Optional[dict]] = mapped_column(JSON, default=None)
+    preferences: Mapped[Optional[dict]] = mapped_column(JSON, default=None)
     visibility: Mapped[str] = mapped_column(String(20), default="active")
     deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
