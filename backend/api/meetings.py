@@ -58,7 +58,7 @@ async def schedule_meeting(
         session = DBSession(
             match_id=match.id,
             round_number=match.current_round,
-            type="feishu_call",
+            session_type="feishu_call",
             host_user_id=match.user_a_id,
             scheduled_at=body.start_time,
             feishu_meeting_url=meeting.url,

@@ -56,6 +56,8 @@ def _to_response(u: User) -> ProfileResponse:
         age=u.age,
         city=u.city,
         gender=u.gender,
+        education=u.education,
+        work=u.work,
         life_goals=u.life_goals,
         personality_tags=u.personality_tags,
         requirements=u.requirements,

@@ -20,14 +20,31 @@ from services.session_guide import get_session_state, mark_question_completed, s
 router = APIRouter()
 
 
+class CreateSessionRequest(BaseModel):
+    match_id: str
+    session_type: str = "in_person"
+
+
+class AdvanceRequest(BaseModel):
+    question_id: int
+
+
+class SwapRequest(BaseModel):
+    question_index: int
+
+
+class EndSessionRequest(BaseModel):
+    rating: int
+    advance: bool
+
+
 @router.post("")
 async def create_session(
-    match_id: str,
-    session_type: str = "in_person",
+    body: CreateSessionRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    match = await db.get(Match, match_id)
+    match = await db.get(Match, body.match_id)
     if not match or match.status != "active":
         raise HTTPException(404, "Match not found or not active")
     if current_user.id not in (match.user_a_id, match.user_b_id):
@@ -56,9 +73,9 @@ async def create_session(
     )
 
     session = DBSession(
-        match_id=match_id,
+        match_id=body.match_id,
         round_number=match.current_round,
-        session_type=session_type,
+        session_type=body.session_type,
         host_user_id=match.user_a_id,  # approach initiator is always host
         questions_completed=[],
         selected_question_ids=selected_ids,
@@ -168,7 +185,7 @@ async def skip_current_question(
 @router.post("/{session_id}/swap")
 async def swap_question(
     session_id: str,
-    question_index: int,
+    body: SwapRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -185,21 +202,21 @@ async def swap_question(
         raise HTTPException(400, f"Maximum {MAX_SWAPS} swaps allowed per session")
 
     current_ids = list(session.selected_question_ids or [])
-    if question_index < 0 or question_index >= len(current_ids):
+    if body.question_index < 0 or body.question_index >= len(current_ids):
         raise HTTPException(400, "Invalid question index")
 
     new_id = pick_swap_question(session.round_number, current_ids)
     if new_id is None:
         raise HTTPException(400, "No more questions available to swap in")
 
-    current_ids[question_index] = new_id
+    current_ids[body.question_index] = new_id
     session.selected_question_ids = current_ids
     session.swap_count = swap_count + 1
     await db.commit()
 
     new_question = get_question(new_id)
     return {
-        "swapped_index": question_index,
+        "swapped_index": body.question_index,
         "new_question": new_question,
         "swap_count": session.swap_count,
         "swaps_remaining": MAX_SWAPS - session.swap_count,

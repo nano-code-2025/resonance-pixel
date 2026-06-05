@@ -40,7 +40,7 @@ class ProfileRequest(BaseModel):
     birth_month: int = Field(ge=1, le=12)
     birth_day: int = Field(ge=1, le=31)
     shichen: Shichen
-    gender: Literal['M', 'F']
+    gender: Literal['M', 'F', 'other']
     mbti: str = Field(min_length=4, max_length=4)
     questionnaire: QuestionnaireAnswers
     bazi_mode: Literal['traditional', 'ai', 'both'] = 'both'
@@ -115,6 +115,8 @@ class ProfileResponse(BaseModel):
     age: int | None = None
     city: str | None = None
     gender: str | None = None
+    education: str | None = None
+    work: str | None = None
     life_goals: str | None = None
     personality_tags: list[str] | None = None
     requirements: dict | None = None

@@ -26,10 +26,13 @@ async def send_offer(
     db: AsyncSession = Depends(get_db),
 ):
     match = await db.get(Match, body.match_id)
-    if not match or match.status not in ("active",):
+    if not match or match.status not in ("active", "offer_pending"):
         raise HTTPException(400, "Match not available for offer")
     if current_user.id not in (match.user_a_id, match.user_b_id):
         raise HTTPException(403)
+    # Offers only allowed after Round 1 completes (spec: "at any point after Round 1")
+    if match.current_round < 2:
+        raise HTTPException(400, "Offer only available after Round 1 completes")
     # Check for existing offer
     existing_result = await db.execute(select(Offer).where(Offer.match_id == body.match_id))
     existing_offer = existing_result.scalar_one_or_none()
@@ -70,5 +73,8 @@ async def respond_to_offer(
         match.status = "confirmed"
     elif body.response == "declined":
         match.status = "closed"
+    elif body.response == "not_yet":
+        # "再想想" — offer stays pending, match stays offer_pending, rounds continue
+        pass
     await db.commit()
     return {"status": body.response}
