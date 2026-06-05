@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.auth import get_current_user
@@ -100,6 +100,16 @@ async def get_state(
 
     idx = state["current_question_index"]
     current_q = questions[idx] if idx < len(questions) else None
+
+    # Count this user's answers for progressive photo unlock
+    answer_count_result = await db.execute(
+        select(func.count())
+        .select_from(QuestionAnswer)
+        .where(QuestionAnswer.session_id == session_id)
+        .where(QuestionAnswer.user_id == current_user.id)
+    )
+    questions_answered_count = answer_count_result.scalar() or 0
+
     return {
         "session_id": session_id,
         "match_id": session.match_id,
@@ -113,13 +123,14 @@ async def get_state(
         "feishu_meeting_url": session.feishu_meeting_url,
         "swap_count": session.swap_count,
         "swaps_remaining": MAX_SWAPS - (session.swap_count or 0),
+        "questions_answered_count": questions_answered_count,
     }
 
 
 @router.post("/{session_id}/advance")
 async def advance_question(
     session_id: str,
-    question_id: int,
+    body: AdvanceRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -128,7 +139,7 @@ async def advance_question(
         raise HTTPException(404)
     if current_user.id != session.host_user_id:
         raise HTTPException(403, "Only host can advance questions")
-    state = await mark_question_completed(session_id, question_id)
+    state = await mark_question_completed(session_id, body.question_id)
     return {
         "questions_completed": state["questions_completed"],
         "current_question_index": state["current_question_index"],
