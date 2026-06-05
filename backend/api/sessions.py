@@ -278,6 +278,22 @@ async def get_answers(
     }
 
 
+@router.get("/{session_id}/recap")
+async def get_recap(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the AI-generated recap for a completed session."""
+    session = await db.get(DBSession, session_id)
+    if not session:
+        raise HTTPException(404)
+    match = await db.get(Match, session.match_id)
+    if not match or current_user.id not in (match.user_a_id, match.user_b_id):
+        raise HTTPException(403)
+    return {"session_id": session_id, "recap": session.ai_recap}
+
+
 async def _build_paired_answers(
     session_id: str, match_id: str, db: AsyncSession
 ) -> list[dict]:
