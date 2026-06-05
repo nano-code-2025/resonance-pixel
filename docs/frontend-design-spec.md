@@ -146,7 +146,75 @@ The app features **pixel-art scene illustrations** at key moments, NOT as backgr
 
 **What this is NOT**: The particle effects are minimal and warm — think fireflies and falling leaves, NOT confetti cannons, heart rain, or flashy game VFX. Everything should feel like watching nature.
 
-### 2.7 What This Design AVOIDS
+### 2.7 Tactile Design System
+
+The UI should feel like a physical, handcrafted object — paper texture, embossed buttons, slightly imperfect borders. This creates warmth and differentiates from slick dating apps.
+
+**CSS Custom Properties:**
+```css
+:root {
+  /* Paper grain overlay on page background */
+  --paper-texture: url("data:image/svg+xml,..."); /* 4x4 SVG with subtle grain */
+  --paper-texture-opacity: 0.15;
+
+  /* Hand-drawn border effect */
+  --hand-drawn-filter: url(#hand-drawn); /* SVG feTurbulence filter */
+
+  /* Emboss effect for primary buttons */
+  --emboss-shadow: inset 0 1px 0 rgba(255,255,255,0.4),
+                   inset 0 -1px 0 rgba(0,0,0,0.06);
+
+  /* Ink bleed on transitions */
+  --ink-transition: filter 300ms ease;
+}
+```
+
+**Where tactile effects apply:**
+
+| Element | Effect |
+|---|---|
+| Page background | Paper grain overlay via `::after` pseudo-element, `opacity: 0.15`, `pointer-events: none` |
+| Cards | Subtle paper texture at `opacity: 0.08` + slight uneven border via `--hand-drawn-filter` |
+| Primary buttons | Emboss/letterpress feel via `--emboss-shadow` + `active: translateY(1px)` removes top shadow |
+| Section dividers | Hand-drawn line wobble via SVG `feTurbulence` (baseFrequency 0.02) |
+| Input focus | Ink spread animation — border-bottom color transition with 0.3px blur spreading outward |
+
+**Global SVG filter** (add to app shell, hidden):
+```html
+<svg style="position:absolute;width:0;height:0">
+  <defs>
+    <filter id="hand-drawn">
+      <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5"/>
+    </filter>
+  </defs>
+</svg>
+```
+
+### 2.8 Micro-interaction Catalog
+
+Warm, natural animations reinforcing the "slow dating" experience. Every interaction should feel like nature, not gamification.
+
+| Trigger | Animation | Duration |
+|---|---|---|
+| Match created | Two seeds slide in from edges, merge at center, sprout | 800ms |
+| Approach received | Envelope slides up from bottom, slight shake, unfolds | 500ms |
+| Question transition | Old fades left+down, new slides in from right | 300ms |
+| Star rating tap | Star scales 1.3x → bounces to 1x, selected stars glow | 200ms |
+| Offer sent | Button → spinner → petal particles float upward | 400ms + 600ms |
+| Bloom tap | Plant offsets 2px L→R→center, 3-5 leaf particles, haptic vibrate(50) | 400ms |
+| Bloom stage up | Full-screen growth: plant builds bottom-to-top, particle burst | 2000ms |
+| Session complete | Bloom "full bloom" burst, rating modal slides up | 800ms + 300ms |
+
+**Animation principles:**
+1. All durations ≤500ms except Bloom growth (800ms) and stage-up (2000ms)
+2. Use CSS `transform` and `opacity` only (GPU composited)
+3. `prefers-reduced-motion: reduce` → degrade to 150ms fade
+4. Mobile haptic: `navigator.vibrate(50)` on tap/match/stage-up
+5. Spring easing: `cubic-bezier(0.34, 1.56, 0.64, 1)` for bounce
+6. No animation loops except idle Bloom particles
+
+### 2.9 What This Design AVOIDS
 
 ```
 ✗  Dark/black backgrounds (we use warm parchment)
@@ -296,11 +364,11 @@ Completed: filled `#C4956A`. Current: filled with ring glow. Future: empty `#C5C
 **Candidate Card** (stacked vertically, generous spacing between cards):
 ```
 ┌──────────────────────────────────┐
-│ [PixelAvatar]    城市 · 25岁     │  ← avatar 48x48, warm pixel art
-│  (48x48)         ♂               │
+│ [PixelAvatar 8x8]  城市 · 25岁   │  ← Level 1 avatar (privacy)
+│  (48px rendered)   ♂              │
 │                                  │
-│ ████████░░  85                   │  ← fit score: #C4956A fill bar
-│                                  │
+│ ████████░░  85    [🌸 romantic]   │  ← fit score + compatibility_bucket
+│                                  │     bucket shown as tiny species icon
 │  · 你们都喜欢旅行                 │  ← #4F4D4A, Inter, 13px
 │  · 对生活节奏想法相似              │     bullet: #C4956A dot
 │  · 价值观接近                     │
@@ -374,15 +442,16 @@ Completed: filled `#C4956A`. Current: filled with ring glow. Future: empty `#C5C
 
 **Header**: `── 我的缘分 ────────────────`
 
-**Match Card**:
+**Match Card** (bloom_stage from API drives the plant visual):
 ```
 ┌──────────────────────────────────┐
 │                                  │
-│ [RelationshipBloom]   城市       │  ← Bloom 100x100, Ghibli pixel plant
-│   (pixel plant)       [TA发起]   │     growing in a small pot/soil scene
+│ [RelationshipBloom]   城市       │  ← Bloom 100x100, stage from bloom_stage
+│   (pixel plant)       [TA发起]   │     bloom_stage: 0=seed, 1=sprout,
+│ [PixelAvatar L1/L2/L3]          │     2=growth, 3=bloom, 4=full bloom
 │                                  │
-│  [温柔体贴] [善于倾听]           │
-│                                  │
+│  [温柔体贴] [善于倾听]           │  ← PixelAvatar level based on round:
+│                                  │     L1 (8x8) → L2 (16x16) → L3 (photo)
 │  ●─────────◐──────────○          │  ← RoundProgress, warm colors
 │  初见      深聊    见见我的圈子   │
 │  ████░░░  3/5                    │  ← sub-progress bar
@@ -392,6 +461,16 @@ Completed: filled `#C4956A`. Current: filled with ring glow. Future: empty `#C5C
 │ │ [视频通话] [线下见面] [都可以]│  │     secondary button style
 │ └────────────────────────────┘   │
 │                                  │
+└──────────────────────────────────┘
+```
+
+**AI Recap** (shown in card after a round completes, fetched from `GET /sessions/{id}/recap`):
+```
+┌─ AI 回顾 ───────────────────────┐
+│ 你们在第一轮聊了关于完美一天的想象。│  ← typewriter animation on first view
+│ 你提到喜欢雨天在家看书，TA说最喜欢│     Inter, 13px, #4F4D4A
+│ 清晨的菜市场。你们对「什么是真正的│     bg: #EDE9E3, border-left: 3px
+│ 陪伴」有相似的看法。              │     solid #C4956A
 └──────────────────────────────────┘
 ```
 
@@ -492,9 +571,47 @@ Ready: `飞书视频 · 6月5日 14:00` + `[开始对话]` accent button
 
 ## 5. Shared Components
 
-### 5.1 PixelAvatar
+### 5.1 PixelAvatar — Progressive Photo Unlock
 
-Deterministic 8-bit portrait from userId. 8x8 pixel grid. 4 warm palettes (amber, rose, forest, golden). Rendered as CSS grid of colored divs or small canvas.
+Deterministic pixel portrait from userId. Functions as a **privacy layer** — identity is revealed gradually as the relationship progresses, creating anticipation.
+
+#### 5.1.1 Three-Stage Reveal
+
+| Stage | Trigger | Visual | Size |
+|---|---|---|---|
+| Level 1 | Match created | 8x8 PixelAvatar (color silhouette only) | 48px rendered |
+| Level 2 | Round 1, 3 questions answered (`questions_answered_count >= 3`) | 16x16 PixelAvatar (recognizable outline) | 48px rendered |
+| Level 3 | Round 1 completed | Real selfie photo | 48px |
+
+**Where each level appears:**
+- **Pool page** candidate cards: Always Level 1 (8x8) — privacy preserved
+- **Inbox** approach cards: Level 1 until approach accepted
+- **Pipeline** match cards: Level 1 → Level 2 → Level 3 as Round 1 progresses
+- **Session** page: Uses Bloom plant, not avatar
+
+#### 5.1.2 Pixel-to-Photo Transition Animation
+
+When transitioning from Level 2 pixel to Level 3 real photo (Round 1 completion):
+
+```css
+.photo-reveal {
+  image-rendering: pixelated;
+  animation: dePixelate 800ms ease-out forwards;
+}
+
+@keyframes dePixelate {
+  0%   { filter: blur(0); image-rendering: pixelated; }
+  30%  { filter: blur(2px); }
+  60%  { filter: blur(1px); image-rendering: auto; }
+  100% { filter: blur(0); image-rendering: auto; }
+}
+```
+
+The transition simulates resolution increasing: pixelated → brief blur → sharp photo. 800ms with ease-out.
+
+#### 5.1.3 Rendering
+
+4 warm palettes (amber, rose, forest, golden). Rendered as CSS grid of colored divs or small canvas. `image-rendering: pixelated` for crisp edges.
 
 ### 5.2 RelationshipBloom — Pixel Plant Growth Engine
 
@@ -745,7 +862,7 @@ Horizontal 3-milestone bar:
 ### Pool
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/pool` | Get ranked candidate list |
+| GET | `/api/pool` | Get ranked candidate list. Each candidate includes `compatibility_bucket` (romantic/warm/elegant/tropical/whimsical) for species preview |
 
 ### Approaches
 | Method | Path | Purpose |
@@ -766,19 +883,20 @@ Horizontal 3-milestone bar:
 ### Pipeline
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/pipeline` | Get pursuing + being_found matches (includes `bloom_type`, `days_since_activity`) |
+| GET | `/api/pipeline` | Get pursuing + being_found matches (includes `bloom_type`, `bloom_stage` 0-4, `days_since_activity`, `questions_completed`) |
 
 ### Sessions
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/sessions` | Create session (triggers AI question curation) |
-| GET | `/api/sessions/{id}/state` | Get live session state (poll every 3s) |
+| GET | `/api/sessions/{id}/state` | Get live session state (poll every 3s). Includes `questions_answered_count` for progressive photo unlock |
 | POST | `/api/sessions/{id}/advance` | Advance to next question (host only) |
 | POST | `/api/sessions/{id}/skip` | Skip current question (host only) |
 | POST | `/api/sessions/{id}/swap` | Swap current question for another (max 3) |
 | POST | `/api/sessions/{id}/answer` | Save user's answer to a question |
 | GET | `/api/sessions/{id}/answers` | Get user's own answers |
-| POST | `/api/sessions/{id}/end` | End session with rating + advance decision |
+| POST | `/api/sessions/{id}/end` | End session with rating + advance decision. Triggers AI recap generation when both users rate. |
+| GET | `/api/sessions/{id}/recap` | Get AI-generated session recap (warm summary of what was discussed). Null if not yet generated |
 
 ### Offers
 | Method | Path | Purpose |
@@ -867,10 +985,11 @@ Horizontal 3-milestone bar:
 - Below each question: collapsible textarea "记录你的想法（仅自己可见）"
 - Max 500 chars. Only the writer can see their own answers.
 
-### 8.4 Photo Reveal Timeline
-- Pool: PixelAvatar only
-- Approach accepted: Still PixelAvatar
-- Round 1 complete: Real selfie unlocked
+### 8.4 Photo Reveal Timeline (Progressive Unlock)
+- **Pool**: 8x8 PixelAvatar only (Level 1) — privacy preserved
+- **Approach accepted / Pipeline start**: Still 8x8 PixelAvatar (Level 1)
+- **Round 1, 3 questions answered** (`questions_answered_count >= 3`): 16x16 PixelAvatar (Level 2) — recognizable outline
+- **Round 1 complete**: Real selfie with pixel→photo dePixelate animation (Level 3, 800ms)
 
 ### 8.5 RelationshipBloom as Visual Metaphor
 - Each match has a unique **plant species** (12 types: sakura, rose, wisteria, peony, lotus, oak, sunflower, lavender, dandelion, plumeria, bougainvillea, glow_mushroom)
@@ -907,8 +1026,42 @@ All loading uses Inter font, muted warm gray, centered.
 - **API base**: `VITE_API_URL` env var
 - **Canvas**: Used for RelationshipBloom and pixel-art hero illustrations. Must use `image-rendering: pixelated` for crisp pixels.
 - **RelationshipBloom rendering**: `requestAnimationFrame` loop for continuous animation (day/night, particles, star twinkle). Pauses when canvas is off-screen (`IntersectionObserver`). Target 30fps to save battery on mobile.
-- **Plant species**: 12 built-in species defined as TypeScript constants (Phase 1). Phase 2: JSON sprite definitions loaded from backend API.
+- **Plant species**: 12 built-in species defined as TypeScript constants (Phase 1). Phase 2: JSON sprite definitions loaded from backend API (`GET /api/species`).
 - **Day/night cycle**: Uses `new Date().getHours()` for sky color. Recalculated every 60s (not every frame).
 - **Particle system**: Lightweight array of `{x, y, vx, vy, life, color}` objects updated each frame. Max 12 per bloom canvas. No external physics library.
+- **Bloom renderer**: Pluggable architecture via registry pattern. v1 uses SVG renderer; interface supports future Canvas mosaic / Three.js. Entry component: `<BloomRenderer species="sakura" stage={2} vitality={0.8} size={100} />`
+- **Tactile design**: Paper texture SVG overlay, hand-drawn border SVG filter (`feTurbulence`), emboss shadows on buttons. See Section 2.7.
+- **Micro-interactions**: CSS transform + opacity only. `prefers-reduced-motion` respected. See Section 2.8.
+- **AI Recap**: Fetched from `GET /sessions/{id}/recap`. Displayed in Pipeline card with typewriter animation.
 - **All UI text in Chinese**
 - **No SSR**: Pure client-side SPA
+
+### Component Structure (Recommended)
+
+```
+src/
+  components/
+    bloom/
+      BloomRenderer.tsx          <- Unified entry, selects renderer by prop
+      types.ts                   <- BloomProps, RendererInterface, SpeciesDefinition
+      useBloomAnimation.ts       <- Day/night cycle + particle hook
+      renderers/
+        svg/
+          SvgBloomRenderer.tsx   <- v1 main renderer
+          SvgTree.tsx            <- Trunk + branches SVG paths
+          SvgCanopy.tsx          <- Flower clusters with watercolor filter
+          SvgParticles.tsx       <- Animated SVG particles
+          SvgSky.tsx             <- Day/night sky gradient
+        registry.ts              <- Renderer registration
+      species/
+        index.ts                 <- Re-exports all 12 species
+        sakura.ts, rose.ts ...   <- SpeciesDefinition per species
+    avatar/
+      PixelAvatar.tsx            <- Deterministic 8x8/16x16 pixel face
+      PhotoReveal.tsx            <- Pixel->photo transition (dePixelate)
+    ui/
+      TactileCard.tsx            <- Card with paper texture overlay
+      ParchmentButton.tsx        <- Primary button with emboss shadow
+      HandDrawnDivider.tsx       <- Section divider with SVG wobble filter
+      PaperBackground.tsx        <- Page-level paper grain background
+```
