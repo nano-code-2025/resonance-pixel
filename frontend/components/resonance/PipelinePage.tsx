@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAppStore, type BloomType } from '@/lib/store'
+import { useAppStore, type BloomType, isDemoMode } from '@/lib/store'
 import { api, PipelineMatch as ApiMatch } from '@/lib/api'
 import { SectionDivider } from './SectionDivider'
 import { RelationshipBloom } from './RelationshipBloom'
@@ -18,7 +18,7 @@ const ROUND_LABELS: Record<number, string> = { 1: '初见', 2: '深聊', 3: '见
 const VOTE_LABELS: Record<string, string> = { video: '视频通话', in_person: '线下见面', either: '都可以' }
 
 function MatchCard({ match, stream }: { match: ApiMatch; stream: 'pursuing' | 'being_found' }) {
-  const { setPage, setCurrentSession } = useAppStore()
+  const { setPage, setCurrentSession, showToast } = useAppStore()
   const [myVote, setMyVote] = useState<string | null>(null)
   const [voting, setVoting] = useState(false)
   const [setupStatus, setSetupStatus] = useState<{
@@ -54,7 +54,7 @@ function MatchCard({ match, stream }: { match: ApiMatch; stream: 'pursuing' | 'b
       const result = await api.voteFormat(match.match_id, value)
       setMyVote(result.my_vote)
       setSetupStatus(prev => prev ? { ...prev, my_vote: result.my_vote, other_voted: result.both_voted } : null)
-    } catch {}
+    } catch { showToast('操作失败，请稍后重试') }
     setVoting(false)
   }
 
@@ -85,12 +85,13 @@ function MatchCard({ match, stream }: { match: ApiMatch; stream: 'pursuing' | 'b
         ended: false,
       })
       setPage('session')
-    } catch {}
+    } catch { showToast('创建会话失败，请重试') }
     setCreatingSession(false)
   }
 
   const bloomType = (match.bloom_type || 'oak') as BloomType
   const bloomStage = Math.min(4, Math.max(0, match.bloom_stage)) as 0 | 1 | 2 | 3 | 4
+  const avatarLevel = match.questions_completed >= 5 ? 3 : match.questions_completed >= 3 ? 2 : 1
   const isReady = setupStatus?.resolved_format && setupStatus?.scheduled_at
   const hasVoted = !!myVote
 
@@ -115,11 +116,16 @@ function MatchCard({ match, stream }: { match: ApiMatch; stream: 'pursuing' | 'b
         </div>
         <div className="flex-1 flex flex-col justify-between">
           <div>
-            <div style={{ fontSize: 13, fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 500, color: '#1D1B1B' }}>
-              {match.other_city ?? '未知'} · {match.other_gender === 'female' ? '女' : match.other_gender === 'male' ? '男' : '其他'}
-            </div>
-            <div style={{ fontSize: 11, color: '#9E9A94', fontFamily: 'var(--font-ibm-plex-mono)', marginTop: 2 }}>
-              {stream === 'being_found' ? 'TA发起' : '我发起'}
+            <div className="flex items-center gap-2 mb-1">
+              <PixelAvatar userId={match.match_id} size={32} level={avatarLevel as 1 | 2 | 3} />
+              <div>
+                <div style={{ fontSize: 13, fontFamily: 'var(--font-ibm-plex-mono)', fontWeight: 500, color: '#1D1B1B' }}>
+                  {match.other_city ?? '未知'} · {match.other_gender === 'female' ? '女' : match.other_gender === 'male' ? '男' : '其他'}
+                </div>
+                <div style={{ fontSize: 11, color: '#9E9A94', fontFamily: 'var(--font-ibm-plex-mono)', marginTop: 2 }}>
+                  {stream === 'being_found' ? 'TA发起' : '我发起'}
+                </div>
+              </div>
             </div>
             <div style={{ fontSize: 10, color: '#C4956A', fontFamily: 'var(--font-ibm-plex-mono)', marginTop: 4 }}>
               {bloomType} · 阶段{bloomStage}
@@ -249,20 +255,46 @@ function EmptyPipeline() {
   )
 }
 
+const MOCK_PIPELINE: { pursuing: ApiMatch[]; being_found: ApiMatch[] } = {
+  pursuing: [
+    { match_id: 'demo-m1', round: 1, status: 'active', other_city: '上海', other_gender: 'female', other_personality_tags: ['温柔体贴'], bloom_type: 'sakura', days_since_activity: 1, questions_completed: 3, bloom_stage: 3 },
+    { match_id: 'demo-m2', round: 1, status: 'active', other_city: '北京', other_gender: 'female', other_personality_tags: ['文艺青年'], bloom_type: 'rose', days_since_activity: 0, questions_completed: 5, bloom_stage: 4 },
+    { match_id: 'demo-m3', round: 1, status: 'active', other_city: '杭州', other_gender: 'female', other_personality_tags: ['善于倾听'], bloom_type: 'wisteria', days_since_activity: 2, questions_completed: 2, bloom_stage: 3 },
+    { match_id: 'demo-m4', round: 1, status: 'active', other_city: '成都', other_gender: 'female', other_personality_tags: ['独立自主'], bloom_type: 'peony', days_since_activity: 0, questions_completed: 4, bloom_stage: 4 },
+    { match_id: 'demo-m5', round: 1, status: 'active', other_city: '广州', other_gender: 'female', other_personality_tags: ['热爱旅行'], bloom_type: 'lotus', days_since_activity: 3, questions_completed: 1, bloom_stage: 3 },
+    { match_id: 'demo-m6', round: 1, status: 'active', other_city: '深圳', other_gender: 'male', other_personality_tags: ['理性冷静'], bloom_type: 'oak', days_since_activity: 1, questions_completed: 4, bloom_stage: 4 },
+  ],
+  being_found: [
+    { match_id: 'demo-m7', round: 1, status: 'active', other_city: '武汉', other_gender: 'female', other_personality_tags: ['创意思维'], bloom_type: 'sunflower', days_since_activity: 0, questions_completed: 3, bloom_stage: 3 },
+    { match_id: 'demo-m8', round: 1, status: 'active', other_city: '南京', other_gender: 'female', other_personality_tags: ['注重健康'], bloom_type: 'lavender', days_since_activity: 1, questions_completed: 0, bloom_stage: 2 },
+    { match_id: 'demo-m9', round: 1, status: 'active', other_city: '西安', other_gender: 'male', other_personality_tags: ['事业心强'], bloom_type: 'dandelion', days_since_activity: 4, questions_completed: 5, bloom_stage: 4 },
+    { match_id: 'demo-m10', round: 1, status: 'active', other_city: '厦门', other_gender: 'female', other_personality_tags: ['爱好运动'], bloom_type: 'plumeria', days_since_activity: 0, questions_completed: 2, bloom_stage: 3 },
+    { match_id: 'demo-m11', round: 1, status: 'active', other_city: '重庆', other_gender: 'female', other_personality_tags: ['温柔体贴'], bloom_type: 'bougainvillea', days_since_activity: 2, questions_completed: 4, bloom_stage: 4 },
+    { match_id: 'demo-m12', round: 1, status: 'active', other_city: '昆明', other_gender: 'male', other_personality_tags: ['善于倾听'], bloom_type: 'glow_mushroom', days_since_activity: 0, questions_completed: 1, bloom_stage: 3 },
+  ],
+}
+
 export function PipelinePage() {
+  const { showToast } = useAppStore()
   const [pursuing, setPursuing] = useState<ApiMatch[]>([])
   const [beingFound, setBeingFound] = useState<ApiMatch[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isDemoMode()) {
+      setPursuing(MOCK_PIPELINE.pursuing)
+      setBeingFound(MOCK_PIPELINE.being_found)
+      setLoading(false)
+      return
+    }
     api.getPipeline()
       .then(data => {
         setPursuing(data.pursuing)
         setBeingFound(data.being_found)
       })
-      .catch(() => {})
+      .catch(() => showToast('无法加载连接列表'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [showToast])
 
   const allMatches = [...pursuing, ...beingFound]
 
@@ -274,7 +306,9 @@ export function PipelinePage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <p style={{ fontSize: 13, fontFamily: 'var(--font-ibm-plex-mono)', color: '#6B6966' }}>加载中...</p>
+          <div className="loading-dots" style={{ color: '#C4956A', fontSize: 20, letterSpacing: 4, textAlign: 'center' }}>
+            <span>.</span><span>.</span><span>.</span>
+          </div>
         </div>
       ) : allMatches.length === 0 ? (
         <EmptyPipeline />

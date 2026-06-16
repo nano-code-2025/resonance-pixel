@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api, ReceivedApproach as ApiApproach } from '@/lib/api'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, isDemoMode } from '@/lib/store'
 import { SectionDivider } from './SectionDivider'
 import { PixelAvatar } from './PixelAvatar'
 
@@ -215,20 +215,43 @@ function EmptyMailbox() {
   )
 }
 
+const MOCK_INBOX: ApiApproach[] = [
+  {
+    approach_id: 'demo-a1',
+    ai_message: '你好，我看到你也喜欢爬山，上周刚从黄山下来，想和你聊聊。',
+    tier: 'standard',
+    created_at: new Date().toISOString(),
+    initiator: { user_id: 'u4', age: 29, city: '杭州', gender: 'male', personality_tags: ['温柔体贴', '爱好运动'], selfie_url: null },
+  },
+  {
+    approach_id: 'demo-a2',
+    ai_message: '看到你档案里提到对生活的安全感，我觉得我们对这件事的理解很接近，想深入聊聊。',
+    tier: 'personalized',
+    created_at: new Date().toISOString(),
+    initiator: { user_id: 'u5', age: 27, city: '广州', gender: 'male', personality_tags: ['独立自主', '热爱旅行'], selfie_url: null },
+  },
+]
+
 export function InboxPage() {
-  const { setInboxBadge } = useAppStore()
+  const { setInboxBadge, showToast } = useAppStore()
   const [approaches, setApproaches] = useState<ApiApproach[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isDemoMode()) {
+      setApproaches(MOCK_INBOX)
+      setInboxBadge(MOCK_INBOX.length)
+      setLoading(false)
+      return
+    }
     api.getReceivedApproaches()
       .then(data => {
         setApproaches(data)
         setInboxBadge(data.length)
       })
-      .catch(() => {})
+      .catch(() => showToast('无法加载收到的心意'))
       .finally(() => setLoading(false))
-  }, [setInboxBadge])
+  }, [setInboxBadge, showToast])
 
   const handleResponded = () => {
     // Refresh after response
@@ -248,7 +271,9 @@ export function InboxPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <p style={{ fontSize: 13, fontFamily: 'var(--font-ibm-plex-mono)', color: '#6B6966' }}>加载中...</p>
+          <div className="loading-dots" style={{ color: '#C4956A', fontSize: 20, letterSpacing: 4, textAlign: 'center' }}>
+            <span>.</span><span>.</span><span>.</span>
+          </div>
         </div>
       ) : approaches.length === 0 ? (
         <EmptyMailbox />

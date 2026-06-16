@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { api } from '@/lib/api'
+import { useAppStore } from '@/lib/store'
 import { RelationshipBloom } from './RelationshipBloom'
 
 interface RatingModalProps {
@@ -10,6 +11,7 @@ interface RatingModalProps {
 }
 
 export function RatingModal({ sessionId, onClose }: RatingModalProps) {
+  const { showToast } = useAppStore()
   const [rating, setRating] = useState(0)
   const [decided, setDecided] = useState<'continue' | 'stop' | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -18,7 +20,7 @@ export function RatingModal({ sessionId, onClose }: RatingModalProps) {
     setSubmitting(true)
     try {
       await api.endSession(sessionId, rating, choice === 'continue')
-    } catch {}
+    } catch { showToast('结束会话失败，请重试') }
     setDecided(choice)
     setTimeout(onClose, 1000)
   }

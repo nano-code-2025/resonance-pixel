@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api, PoolCandidate } from '@/lib/api'
-import { MOCK_POOL_CANDIDATES, MatchCandidate } from '@/lib/store'
+import { MOCK_POOL_CANDIDATES, MatchCandidate, isDemoMode, useAppStore } from '@/lib/store'
 import { SectionDivider } from './SectionDivider'
 import { PixelAvatar } from './PixelAvatar'
 
@@ -300,16 +300,25 @@ function CandidateCard({
 }
 
 export function PoolPage() {
+  const { showToast } = useAppStore()
   const [candidates, setCandidates] = useState<MatchCandidate[]>([])
   const [loading, setLoading] = useState(true)
   const [approachTarget, setApproachTarget] = useState<string | null>(null)
 
   useEffect(() => {
+    if (isDemoMode()) {
+      setCandidates(MOCK_POOL_CANDIDATES)
+      setLoading(false)
+      return
+    }
     api.getPool()
       .then(data => setCandidates(data.map(toDisplayCandidate)))
-      .catch(() => setCandidates(MOCK_POOL_CANDIDATES)) // fallback to mock
+      .catch(() => {
+        setCandidates(MOCK_POOL_CANDIDATES)
+        showToast('无法加载候选人，使用离线数据')
+      })
       .finally(() => setLoading(false))
-  }, [])
+  }, [showToast])
 
   const approachCandidate = candidates.find(c => c.id === approachTarget)
 
@@ -321,7 +330,9 @@ export function PoolPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <p style={{ fontSize: 13, fontFamily: 'var(--font-ibm-plex-mono)', color: '#6B6966' }}>加载中...</p>
+          <div className="loading-dots" style={{ color: '#C4956A', fontSize: 20, letterSpacing: 4, textAlign: 'center' }}>
+            <span>.</span><span>.</span><span>.</span>
+          </div>
         </div>
       ) : candidates.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-4">

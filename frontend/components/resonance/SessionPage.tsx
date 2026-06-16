@@ -52,7 +52,7 @@ function QuestionProgressBar({ current, total }: { current: number; total: numbe
 }
 
 export function SessionPage() {
-  const { currentSession, setCurrentSession, setPage, setRatingModalOpen, ratingModalOpen } = useAppStore()
+  const { currentSession, setCurrentSession, setPage, setRatingModalOpen, ratingModalOpen, showToast } = useAppStore()
   const [timerSeconds, setTimerSeconds] = useState(currentSession?.timerSeconds ?? 45 * 60)
   const [qIndex, setQIndex] = useState(currentSession?.questionIndex ?? 0)
   const [myAnswer, setMyAnswer] = useState('')
@@ -165,7 +165,7 @@ export function SessionPage() {
       await api.saveAnswer(session.id, questionId, myAnswer)
       setAnswerSaved(true)
       setTimeout(() => setAnswerSaved(false), 2000)
-    } catch {}
+    } catch { showToast('提交失败，请重试') }
     setSaving(false)
   }
 
