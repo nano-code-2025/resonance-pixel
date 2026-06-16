@@ -10,6 +10,7 @@ import { InboxPage } from './InboxPage'
 import { PipelinePage } from './PipelinePage'
 import { SessionPage } from './SessionPage'
 import { BottomTabBar } from './BottomTabBar'
+import { Toast } from './Toast'
 
 export function ResonanceApp() {
   const { page, token, initAuth, setInboxBadge } = useAppStore()
@@ -19,9 +20,9 @@ export function ResonanceApp() {
     initAuth()
   }, [initAuth])
 
-  // Poll inbox count when authenticated
+  // Poll inbox count when authenticated (skip in demo mode)
   useEffect(() => {
-    if (!token) return
+    if (!token || token === 'demo-mode') return
     const refresh = () =>
       api.getReceivedApproaches()
         .then(list => setInboxBadge(list.length))
@@ -32,15 +33,15 @@ export function ResonanceApp() {
   }, [token, setInboxBadge])
 
   if (page === 'auth') {
-    return <AuthPage />
+    return <><Toast /><AuthPage /></>
   }
 
   if (page === 'onboarding') {
-    return <OnboardingPage />
+    return <><Toast /><OnboardingPage /></>
   }
 
   if (page === 'session') {
-    return <SessionPage />
+    return <><Toast /><SessionPage /></>
   }
 
   return (
@@ -53,6 +54,7 @@ export function ResonanceApp() {
         position: 'relative',
       }}
     >
+      <Toast />
       {/* Page content */}
       <div style={{ paddingBottom: 56 }}>
         {page === 'pool' && <PoolPage />}

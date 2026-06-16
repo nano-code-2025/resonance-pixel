@@ -89,10 +89,17 @@ interface AppStore {
   approachModalOpen: boolean
   approachTargetId: string | null
 
+  // Toast
+  toastMessage: string | null
+  toastType: 'error' | 'success'
+  showToast: (message: string, type?: 'error' | 'success') => void
+  dismissToast: () => void
+
   // Auth actions
   setToken: (token: string | null) => void
   logout: () => void
   initAuth: () => void
+  enterDemoMode: () => void
   setPage: (page: AppPage) => void
   setActiveTab: (tab: 'pool' | 'inbox' | 'pipeline') => void
   setCurrentSession: (session: SessionState | null) => void
@@ -101,6 +108,8 @@ interface AppStore {
   setApproachModalOpen: (open: boolean, targetId?: string) => void
   setInboxBadge: (n: number) => void
 }
+
+let toastTimeoutId: ReturnType<typeof setTimeout> | null = null
 
 export const useAppStore = create<AppStore>((set) => ({
   token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
@@ -112,6 +121,8 @@ export const useAppStore = create<AppStore>((set) => ({
   ratingModalOpen: false,
   approachModalOpen: false,
   approachTargetId: null,
+  toastMessage: null,
+  toastType: 'error' as const,
 
   setToken: (token) => {
     if (token) {
@@ -131,6 +142,11 @@ export const useAppStore = create<AppStore>((set) => ({
       set({ token, page: 'pool' })
     }
   },
+  enterDemoMode: () => {
+    const demoToken = 'demo-mode'
+    localStorage.setItem('token', demoToken)
+    set({ token: demoToken, page: 'pool' })
+  },
   setPage: (page) => set({ page }),
   setActiveTab: (tab) => set({ activeTab: tab }),
   setCurrentSession: (session) => set({ currentSession: session }),
@@ -139,7 +155,25 @@ export const useAppStore = create<AppStore>((set) => ({
   setApproachModalOpen: (open, targetId) =>
     set({ approachModalOpen: open, approachTargetId: targetId ?? null }),
   setInboxBadge: (n) => set({ inboxBadge: n }),
+  showToast: (message, type = 'error') => {
+    if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    set({ toastMessage: message, toastType: type })
+    toastTimeoutId = setTimeout(() => {
+      set({ toastMessage: null })
+      toastTimeoutId = null
+    }, 3000)
+  },
+  dismissToast: () => {
+    if (toastTimeoutId) clearTimeout(toastTimeoutId)
+    toastTimeoutId = null
+    set({ toastMessage: null })
+  },
 }))
+
+// Demo mode check
+export function isDemoMode(): boolean {
+  return typeof window !== 'undefined' && localStorage.getItem('token') === 'demo-mode'
+}
 
 // Mock data
 export const MOCK_POOL_CANDIDATES: MatchCandidate[] = [
