@@ -15,6 +15,33 @@ interface Particle {
   type: 'leaf' | 'petal' | 'firefly' | 'rain' | 'burst'
 }
 
+type StemStyle = 'straight' | 'curved' | 'thick' | 'multi'
+type LeafPattern = 'alternate' | 'cluster' | 'drooping' | 'pad' | 'none'
+type FlowerShape = 'none' | 'cross' | 'round5' | 'layered' | 'disc' | 'spike' | 'puff' | 'umbrella' | 'triangle'
+
+interface SpeciesShape {
+  stemStyle: StemStyle
+  leafPattern: LeafPattern
+  flowerShape: FlowerShape
+  flowerCount: { stage3: number; stage4: number }
+  specialElement?: 'thorns' | 'water' | 'chains' | 'glow' | 'scatter'
+}
+
+const SPECIES_SHAPES: Record<BloomType, SpeciesShape> = {
+  sakura:        { stemStyle: 'curved',   leafPattern: 'alternate', flowerShape: 'round5',   flowerCount: { stage3: 5, stage4: 8 },  specialElement: 'scatter' },
+  rose:          { stemStyle: 'straight', leafPattern: 'alternate', flowerShape: 'layered',  flowerCount: { stage3: 2, stage4: 3 },  specialElement: 'thorns' },
+  wisteria:      { stemStyle: 'thick',    leafPattern: 'cluster',   flowerShape: 'spike',    flowerCount: { stage3: 3, stage4: 5 },  specialElement: 'chains' },
+  peony:         { stemStyle: 'curved',   leafPattern: 'cluster',   flowerShape: 'layered',  flowerCount: { stage3: 1, stage4: 2 } },
+  lotus:         { stemStyle: 'straight', leafPattern: 'pad',       flowerShape: 'round5',   flowerCount: { stage3: 1, stage4: 2 },  specialElement: 'water' },
+  oak:           { stemStyle: 'thick',    leafPattern: 'cluster',   flowerShape: 'none',     flowerCount: { stage3: 0, stage4: 0 } },
+  sunflower:     { stemStyle: 'straight', leafPattern: 'alternate', flowerShape: 'disc',     flowerCount: { stage3: 1, stage4: 1 } },
+  lavender:      { stemStyle: 'multi',    leafPattern: 'alternate', flowerShape: 'spike',    flowerCount: { stage3: 3, stage4: 5 } },
+  dandelion:     { stemStyle: 'straight', leafPattern: 'alternate', flowerShape: 'puff',     flowerCount: { stage3: 1, stage4: 1 },  specialElement: 'scatter' },
+  plumeria:      { stemStyle: 'thick',    leafPattern: 'cluster',   flowerShape: 'round5',   flowerCount: { stage3: 3, stage4: 5 } },
+  bougainvillea: { stemStyle: 'curved',   leafPattern: 'cluster',   flowerShape: 'triangle', flowerCount: { stage3: 4, stage4: 7 } },
+  glow_mushroom: { stemStyle: 'straight', leafPattern: 'none',      flowerShape: 'umbrella', flowerCount: { stage3: 1, stage4: 2 },  specialElement: 'glow' },
+}
+
 interface RelationshipBloomProps {
   bloomType: BloomType
   stage: 0 | 1 | 2 | 3 | 4
@@ -233,20 +260,98 @@ export function RelationshipBloom({
     }
 
     if (stage >= 1) {
-      // Sprout — short stem, 1-2 leaves
+      const shape = SPECIES_SHAPES[bloomType]
       const stemHeight = stage === 1 ? 4 : stage === 2 ? 7 : stage >= 3 ? 12 : 4
       const swayX = stage >= 2 ? Math.sin(t * 0.8) * 0.3 : 0
 
       // Stem
-      ctx.fillStyle = applyVitality(palette.stem)
-      for (let y = 0; y < stemHeight; y++) {
-        const sx = cx + swayX * (y / stemHeight)
-        px(sx - 0.5, groundY - 1 - y, 1, 1, applyVitality(palette.stem))
+      const drawStem = () => {
+        switch (shape.stemStyle) {
+          case 'thick':
+            for (let y = 0; y < stemHeight; y++) {
+              const sx = cx + swayX * (y / stemHeight)
+              px(sx - 1, groundY - 1 - y, 2, 1, applyVitality(palette.stem))
+            }
+            break
+          case 'curved':
+            for (let y = 0; y < stemHeight; y++) {
+              const curveOffset = Math.sin((y / stemHeight) * Math.PI) * 1.5
+              const sx = cx + swayX * (y / stemHeight) + curveOffset
+              px(sx - 0.5, groundY - 1 - y, 1, 1, applyVitality(palette.stem))
+            }
+            break
+          case 'multi':
+            for (let s = -1; s <= 1; s++) {
+              for (let y = 0; y < stemHeight; y++) {
+                const sx = cx + s * 2 + swayX * (y / stemHeight)
+                px(sx - 0.5, groundY - 1 - y, 1, 1, applyVitality(palette.stem))
+              }
+            }
+            break
+          default: // straight
+            for (let y = 0; y < stemHeight; y++) {
+              const sx = cx + swayX * (y / stemHeight)
+              px(sx - 0.5, groundY - 1 - y, 1, 1, applyVitality(palette.stem))
+            }
+        }
       }
+      drawStem()
 
       // Leaves
-      if (stage >= 1) {
+      const drawLeaves = () => {
         const leafY = groundY - 2
+        if (shape.leafPattern === 'none') return
+
+        if (shape.leafPattern === 'pad') {
+          // Lily pad style — horizontal ovals at water level
+          if (stage >= 2) {
+            px(cx - 4, groundY - 2, 3, 1, applyVitality('#2D8B4E'))
+            px(cx + 1, groundY - 2, 3, 1, applyVitality('#2D8B4E'))
+          }
+          if (stage >= 3) {
+            px(cx - 2, groundY - 3, 4, 1, applyVitality(palette.leaf))
+          }
+          return
+        }
+
+        if (shape.leafPattern === 'drooping') {
+          // Hanging leaves below branches
+          if (stage >= 2) {
+            px(cx - 3 + swayX * 0.4, leafY - 2, 1, 2, applyVitality(palette.leaf))
+            px(cx + 2 + swayX * 0.5, leafY - 3, 1, 2, applyVitality(palette.leaf))
+          }
+          if (stage >= 3) {
+            px(cx - 4 + swayX * 0.5, leafY - 5, 1, 3, applyVitality(palette.leaf))
+            px(cx + 3 + swayX * 0.7, leafY - 6, 1, 3, applyVitality(palette.leaf))
+          }
+          return
+        }
+
+        if (shape.leafPattern === 'cluster') {
+          // Grouped at top of stem
+          if (stage >= 2) {
+            const top = groundY - 1 - (stage === 2 ? 7 : 12)
+            px(cx - 3 + swayX * 0.5, top, 2, 1, applyVitality(palette.leaf))
+            px(cx + 1 + swayX * 0.5, top, 2, 1, applyVitality(palette.leaf))
+            px(cx - 2 + swayX * 0.5, top + 1, 4, 1, applyVitality(palette.leaf))
+          }
+          if (stage >= 3) {
+            const top = groundY - 13
+            for (let i = -3; i <= 3; i++) {
+              px(cx + i + swayX * 0.6, top + 1 + Math.abs(i) * 0.5, 1, 1, applyVitality(i % 2 === 0 ? palette.leaf : '#6B9E5E'))
+            }
+          }
+          if (stage >= 4) {
+            const top = groundY - 14
+            for (let i = -4; i <= 4; i++) {
+              const ly = top + Math.abs(i) * 0.4
+              px(cx + i + swayX * 0.9, ly, 1, 1, applyVitality(i % 2 === 0 ? palette.leaf : '#6B9E5E'))
+            }
+          }
+          return
+        }
+
+        // Default: 'alternate' — current behavior
         px(cx - 2 + swayX * 0.3, leafY, 1, 1, applyVitality(palette.leaf))
         if (stage >= 2) {
           px(cx + 1 + swayX * 0.5, leafY - 1, 1, 1, applyVitality(palette.leaf))
@@ -254,77 +359,147 @@ export function RelationshipBloom({
           px(cx + 1 + swayX * 0.6, leafY - 4, 2, 1, applyVitality(palette.leaf))
         }
         if (stage >= 3) {
-          // More leaf clusters
           px(cx - 4 + swayX * 0.5, leafY - 6, 2, 1, applyVitality(palette.leaf))
           px(cx + 2 + swayX * 0.7, leafY - 7, 2, 1, applyVitality(palette.leaf))
           px(cx - 2 + swayX * 0.6, leafY - 9, 3, 1, applyVitality(palette.leaf))
           px(cx + 0 + swayX * 0.8, leafY - 10, 3, 1, applyVitality(palette.leaf))
         }
         if (stage >= 4) {
-          // Full canopy
           for (let i = -4; i <= 4; i++) {
             const ly = groundY - 11 - Math.abs(i) * 0.5
             px(cx + i + swayX * 0.9, ly, 1, 1, applyVitality(i % 2 === 0 ? palette.leaf : '#6B9E5E'))
           }
         }
       }
+      drawLeaves()
 
       // Flowers (stage 3+)
-      if (stage >= 3) {
-        const flowerPositions = bloomType === 'wisteria'
-          ? [{ x: cx - 2, y: groundY - 6 }, { x: cx, y: groundY - 4 }, { x: cx + 2, y: groundY - 6 }]
-          : bloomType === 'lotus'
-          ? [{ x: cx, y: groundY - 8 }]
-          : [
-            { x: cx - 3 + swayX * 0.5, y: groundY - 9 },
-            { x: cx + 2 + swayX * 0.7, y: groundY - 10 },
-            ...(stage >= 4 ? [
-              { x: cx - 1 + swayX * 0.6, y: groundY - 12 },
-              { x: cx + 3 + swayX * 0.8, y: groundY - 8 },
-            ] : []),
-          ]
+      if (stage >= 3 && shape.flowerShape !== 'none') {
+        const count = stage >= 4 ? shape.flowerCount.stage4 : shape.flowerCount.stage3
+        // Generate flower positions spread around canopy
+        const flowerPositions: { x: number; y: number }[] = []
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2 + 0.5
+          const radius = 2 + (i % 3)
+          const fy = groundY - 8 - Math.cos(angle) * radius * 0.6
+          const fx = cx + Math.sin(angle) * radius + swayX * 0.6
+          flowerPositions.push({ x: fx, y: fy })
+        }
 
-        flowerPositions.forEach(({ x, y }) => {
-          // Cross-shaped flower
-          px(x, y, 1, 1, applyVitality(palette.flower))
-          if (stage >= 4) {
-            px(x - 1, y, 1, 1, hexToRgba(palette.flower, 0.7))
-            px(x + 1, y, 1, 1, hexToRgba(palette.flower, 0.7))
-            px(x, y - 1, 1, 1, hexToRgba(palette.flower, 0.7))
-            px(x, y + 1, 1, 1, hexToRgba(palette.flower, 0.7))
-          }
-        })
-      }
-
-      // Wisteria hanging chains
-      if (bloomType === 'wisteria' && stage >= 3) {
-        for (let chain = 0; chain < 3; chain++) {
-          const startX = cx - 3 + chain * 2.5 + swayX * 0.5
-          for (let yy = 0; yy < 3 + chain; yy++) {
-            px(startX, groundY - 7 - yy, 1, 1, hexToRgba(palette.flower, 0.6 + yy * 0.1))
+        const drawFlower = (x: number, y: number) => {
+          switch (shape.flowerShape) {
+            case 'round5':
+              // 5-petal: center + 4 cardinal pixels
+              px(x, y, 1, 1, applyVitality(palette.flower))
+              px(x - 1, y, 1, 1, hexToRgba(palette.flower, 0.8))
+              px(x + 1, y, 1, 1, hexToRgba(palette.flower, 0.8))
+              px(x, y - 1, 1, 1, hexToRgba(palette.flower, 0.8))
+              px(x, y + 1, 1, 1, hexToRgba(palette.flower, 0.7))
+              break
+            case 'layered':
+              // Layered ball: 3x3 block for peony/rose
+              px(x - 1, y - 1, 3, 3, hexToRgba(palette.flower, 0.5))
+              px(x, y - 1, 1, 2, applyVitality(palette.flower))
+              px(x - 1, y, 2, 1, applyVitality(palette.flower))
+              px(x, y, 1, 1, applyVitality(palette.light))
+              break
+            case 'disc':
+              // Sunflower disc: 3x3 yellow with brown center
+              px(x - 1, y - 1, 3, 3, applyVitality(palette.flower))
+              px(x, y, 1, 1, applyVitality(palette.stem))
+              px(x - 1, y, 1, 1, applyVitality('#A07820'))
+              px(x + 1, y, 1, 1, applyVitality('#A07820'))
+              break
+            case 'spike':
+              // Vertical dot sequence for lavender/wisteria
+              for (let sy = 0; sy < 3; sy++) {
+                px(x, y - sy, 1, 1, hexToRgba(palette.flower, 0.6 + sy * 0.15))
+              }
+              break
+            case 'puff':
+              // Dandelion puff: cross + diagonals
+              px(x, y, 1, 1, applyVitality(palette.flower))
+              px(x - 1, y, 1, 1, hexToRgba(palette.light, 0.7))
+              px(x + 1, y, 1, 1, hexToRgba(palette.light, 0.7))
+              px(x, y - 1, 1, 1, hexToRgba(palette.light, 0.7))
+              px(x, y + 1, 1, 1, hexToRgba(palette.light, 0.7))
+              // Diagonals
+              px(x - 1, y - 1, 1, 1, hexToRgba(palette.light, 0.4))
+              px(x + 1, y - 1, 1, 1, hexToRgba(palette.light, 0.4))
+              px(x - 1, y + 1, 1, 1, hexToRgba(palette.light, 0.4))
+              px(x + 1, y + 1, 1, 1, hexToRgba(palette.light, 0.4))
+              break
+            case 'umbrella':
+              // Mushroom cap: dome shape
+              px(x - 2, y, 5, 1, applyVitality(palette.flower))
+              px(x - 1, y - 1, 3, 1, applyVitality(palette.flower))
+              px(x, y - 2, 1, 1, applyVitality(palette.light))
+              break
+            case 'triangle':
+              // Bougainvillea bract: triangular
+              px(x, y - 1, 1, 1, applyVitality(palette.flower))
+              px(x - 1, y, 2, 1, applyVitality(palette.flower))
+              px(x, y, 1, 1, hexToRgba(palette.light, 0.6))
+              break
+            default: // cross
+              px(x, y, 1, 1, applyVitality(palette.flower))
+              if (stage >= 4) {
+                px(x - 1, y, 1, 1, hexToRgba(palette.flower, 0.7))
+                px(x + 1, y, 1, 1, hexToRgba(palette.flower, 0.7))
+                px(x, y - 1, 1, 1, hexToRgba(palette.flower, 0.7))
+                px(x, y + 1, 1, 1, hexToRgba(palette.flower, 0.7))
+              }
           }
         }
+
+        flowerPositions.forEach(({ x, y }) => drawFlower(x, y))
       }
 
-      // Lotus water base
-      if (bloomType === 'lotus') {
-        ctx.fillStyle = hexToRgba('#5A8AAE', 0.4)
-        ctx.fillRect(Math.round(4 * scale), Math.round((groundY - 1) * scale), Math.round(12 * scale), Math.round(2 * scale))
-        // lily pads
-        px(cx - 3, groundY - 2, 3, 1, applyVitality('#2D8B4E'))
-        px(cx + 1, groundY - 2, 3, 1, applyVitality('#2D8B4E'))
-      }
-
-      // Glow mushroom glow
-      if (bloomType === 'glow_mushroom' && stage >= 3 && night) {
-        const grad = ctx.createRadialGradient(
-          Math.round(cx * scale), Math.round((groundY - 6) * scale), 0,
-          Math.round(cx * scale), Math.round((groundY - 6) * scale), Math.round(6 * scale)
-        )
-        grad.addColorStop(0, hexToRgba(palette.flower, 0.4))
-        grad.addColorStop(1, 'transparent')
-        ctx.fillStyle = grad
-        ctx.fillRect(Math.round((cx - 6) * scale), Math.round((groundY - 12) * scale), Math.round(12 * scale), Math.round(12 * scale))
+      // Special elements
+      if (shape.specialElement && stage >= 3) {
+        switch (shape.specialElement) {
+          case 'thorns':
+            // 1px bumps on stem every 3 pixels
+            for (let y = 2; y < stemHeight - 1; y += 3) {
+              const side = y % 2 === 0 ? -1 : 1
+              const sx = cx + swayX * (y / stemHeight)
+              px(sx - 0.5 + side * 1.5, groundY - 1 - y, 1, 1, applyVitality(palette.stem))
+            }
+            break
+          case 'chains':
+            // Wisteria hanging chains
+            for (let chain = 0; chain < 3; chain++) {
+              const startX = cx - 3 + chain * 2.5 + swayX * 0.5
+              for (let yy = 0; yy < 3 + chain; yy++) {
+                px(startX, groundY - 7 - yy, 1, 1, hexToRgba(palette.flower, 0.6 + yy * 0.1))
+              }
+            }
+            break
+          case 'water':
+            // Lotus water surface
+            ctx.fillStyle = hexToRgba('#5A8AAE', 0.4)
+            ctx.fillRect(Math.round(4 * scale), Math.round((groundY - 1) * scale), Math.round(12 * scale), Math.round(2 * scale))
+            break
+          case 'glow':
+            // Mushroom night glow
+            if (night) {
+              const grad = ctx.createRadialGradient(
+                Math.round(cx * scale), Math.round((groundY - 6) * scale), 0,
+                Math.round(cx * scale), Math.round((groundY - 6) * scale), Math.round(6 * scale)
+              )
+              grad.addColorStop(0, hexToRgba(palette.flower, 0.4))
+              grad.addColorStop(1, 'transparent')
+              ctx.fillStyle = grad
+              ctx.fillRect(Math.round((cx - 6) * scale), Math.round((groundY - 12) * scale), Math.round(12 * scale), Math.round(12 * scale))
+            }
+            break
+          case 'scatter':
+            // Idle particle spawn (sakura petals, dandelion seeds)
+            if (vitality >= 0.65 && Math.random() < 0.015) {
+              spawnLeaves(1)
+            }
+            break
+        }
       }
 
       // Full bloom halo glow
@@ -339,7 +514,7 @@ export function RelationshipBloom({
         ctx.fillStyle = grad
         ctx.fillRect(0, 0, canvas.width, canvas.height)
       }
-    }
+    } // end stage >= 1
 
     // Fireflies (night, stage 3+)
     if (night && stage >= 3 && vitality >= 0.65) {
@@ -399,11 +574,6 @@ export function RelationshipBloom({
         )
       }
     })
-
-    // Idle leaf spawn for full bloom
-    if (stage >= 4 && vitality >= 0.65 && Math.random() < 0.008) {
-      spawnLeaves(1)
-    }
 
     // Shake animation
     if (shakeTimeRef.current > 0) {
