@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resonance Demo 2 — SVG Illustration</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E8E4DE;
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh; padding: 20px 0;
+    font-family: 'Courier New', monospace;
+  }
+  .phone {
+    width: 390px; background: #F3F1ED;
+    border: 1px solid #C5C1BB;
+    padding: 24px 20px 32px;
+  }
+  .header { text-align: center; margin-bottom: 16px; }
+  .header h1 { font-size: 17px; color: #1D1B1B; font-weight: 500; letter-spacing: 3px; }
+  .header p { font-size: 14px; color: #4F4D4A; font-family: sans-serif; margin-top: 4px; }
+  .scene-container {
+    width: 350px; height: 300px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB; overflow: hidden;
+  }
+  .section-divider {
+    font-size: 11px; color: #6B6966; letter-spacing: 2px;
+    text-transform: uppercase; margin: 20px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-divider::after {
+    content: ''; flex: 1; height: 1px; background: #C5C1BB;
+  }
+  .bloom-container {
+    width: 160px; height: 160px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB; overflow: hidden;
+  }
+  .card {
+    background: #FBF9F6; border: 1px solid #C5C1BB; padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avatar-svg { width: 48px; height: 48px; }
+  .card-info { font-size: 14px; color: #1D1B1B; }
+  .card-info small { color: #6B6966; font-size: 12px; }
+  .score-bar { height: 8px; background: #DDD9D3; margin: 10px 0; position: relative; }
+  .score-fill { height: 100%; background: #C4956A; width: 85%; }
+  .score-label { font-size: 12px; color: #C4956A; position: absolute; right: 0; top: -16px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .tag { background: #EDE9E3; color: #4F4D4A; font-size: 12px; padding: 3px 8px; font-family: sans-serif; }
+  .highlights { font-size: 13px; color: #4F4D4A; font-family: sans-serif; line-height: 1.8; }
+  .highlights span { color: #C4956A; margin-right: 4px; }
+  .btn {
+    display: block; width: 100%; padding: 12px;
+    background: #C4956A; color: #FBF9F6; border: none;
+    font-size: 14px; font-family: 'Courier New', monospace;
+    cursor: pointer; text-align: center; margin-top: 12px;
+  }
+  .btn:hover { background: #B5845B; }
+  .label {
+    text-align: center; margin-top: 20px; padding: 12px;
+    font-size: 13px; color: #6B6966; border-top: 1px solid #C5C1BB;
+  }
+
+  /* SVG Animations */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.9; }
+  }
+  @keyframes petalFall {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0.9; }
+    25% { transform: translate(15px, 60px) rotate(90deg); opacity: 0.8; }
+    50% { transform: translate(-10px, 130px) rotate(180deg); opacity: 0.6; }
+    75% { transform: translate(20px, 200px) rotate(270deg); opacity: 0.3; }
+    100% { transform: translate(5px, 280px) rotate(360deg); opacity: 0; }
+  }
+  @keyframes petalFall2 {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0.8; }
+    25% { transform: translate(-20px, 70px) rotate(-90deg); opacity: 0.7; }
+    50% { transform: translate(10px, 140px) rotate(-180deg); opacity: 0.5; }
+    100% { transform: translate(-15px, 280px) rotate(-360deg); opacity: 0; }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-1.5deg); }
+    50% { transform: rotate(1.5deg); }
+  }
+  @keyframes fireflyDrift {
+    0% { transform: translate(0, 0); opacity: 0.3; }
+    25% { transform: translate(10px, -15px); opacity: 0.8; }
+    50% { transform: translate(-5px, -25px); opacity: 0.4; }
+    75% { transform: translate(15px, -10px); opacity: 0.9; }
+    100% { transform: translate(0, 0); opacity: 0.3; }
+  }
+  @keyframes bloomSway {
+    0%, 100% { transform-origin: bottom center; transform: rotate(-2deg); }
+    50% { transform-origin: bottom center; transform: rotate(2deg); }
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0); opacity: 0.7; }
+    100% { transform: translateY(-30px); opacity: 0; }
+  }
+  .star { animation: twinkle ease-in-out infinite; }
+  .petal-group { animation: petalFall 8s ease-in-out infinite; }
+  .petal-group-2 { animation: petalFall2 10s ease-in-out infinite; }
+  .tree-group { animation: sway 6s ease-in-out infinite; transform-origin: 175px 260px; }
+  .firefly { animation: fireflyDrift ease-in-out infinite; }
+  .bloom-tree { animation: bloomSway 4s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <h1>RESONANCE</h1>
+    <p>找到同频的人</p>
+  </div>
+
+  <div class="scene-container">
+    <svg width="350" height="300" viewBox="0 0 350 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="8" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="softGlow">
+          <feGaussianBlur stdDeviation="15" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="watercolor">
+          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <radialGradient id="warmGlow" cx="50%" cy="55%" r="40%">
+          <stop offset="0%" stop-color="#C4956A" stop-opacity="0.35"/>
+          <stop offset="50%" stop-color="#C4956A" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#C4956A" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1E2A4A"/>
+          <stop offset="100%" stop-color="#2B3A67"/>
+        </linearGradient>
+        <linearGradient id="trunkGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#5A4030"/>
+          <stop offset="50%" stop-color="#8B6B4A"/>
+          <stop offset="100%" stop-color="#6B5038"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Sky -->
+      <rect width="350" height="300" fill="url(#skyGrad)"/>
+
+      <!-- Warm glow -->
+      <ellipse cx="175" cy="160" rx="140" ry="120" fill="url(#warmGlow)"/>
+
+      <!-- Stars -->
+      <circle cx="30" cy="25" r="1.5" fill="#F0EDE8" class="star" style="animation-duration:3s;animation-delay:0s"/>
+      <circle cx="80" cy="40" r="1" fill="#F0EDE8" class="star" style="animation-duration:4s;animation-delay:0.5s"/>
+      <circle cx="140" cy="15" r="1.5" fill="#F0EDE8" class="star" style="animation-duration:3.5s;animation-delay:1s"/>
+      <circle cx="200" cy="30" r="1" fill="#F0EDE8" class="star" style="animation-duration:5s;animation-delay:1.5s"/>
+      <circle cx="260" cy="20" r="1.5" fill="#F0EDE8" class="star" style="animation-duration:3s;animation-delay:0.3s"/>
+      <circle cx="310" cy="45" r="1" fill="#F0EDE8" class="star" style="animation-duration:4.5s;animation-delay:2s"/>
+      <circle cx="55" cy="60" r="1" fill="#F0EDE8" class="star" style="animation-duration:3.2s;animation-delay:0.8s"/>
+      <circle cx="120" cy="55" r="1.5" fill="#F0EDE8" class="star" style="animation-duration:4s;animation-delay:1.2s"/>
+      <circle cx="230" cy="50" r="1" fill="#F0EDE8" class="star" style="animation-duration:3.8s;animation-delay:0.2s"/>
+      <circle cx="290" cy="65" r="1" fill="#F0EDE8" class="star" style="animation-duration:5s;animation-delay:2.5s"/>
+      <circle cx="340" cy="30" r="1" fill="#F0EDE8" class="star" style="animation-duration:3.5s;animation-delay:1.8s"/>
+      <circle cx="15" cy="80" r="1" fill="#F0EDE8" class="star" style="animation-duration:4.2s;animation-delay:0.6s"/>
+      <circle cx="175" cy="8" r="1.2" fill="#F0EDE8" class="star" style="animation-duration:3s;animation-delay:3s"/>
+
+      <!-- Ground hill -->
+      <ellipse cx="175" cy="310" rx="220" ry="60" fill="#6B5038"/>
+      <ellipse cx="175" cy="305" rx="220" ry="55" fill="#8B6B4A"/>
+      <ellipse cx="175" cy="302" rx="220" ry="52" fill="#4A7C59" opacity="0.4"/>
+
+      <!-- Grass tufts -->
+      <path d="M60,258 Q62,248 64,258" stroke="#4A7C59" stroke-width="1.5" fill="none"/>
+      <path d="M62,258 Q65,246 68,258" stroke="#3D6B48" stroke-width="1.5" fill="none"/>
+      <path d="M280,256 Q282,246 284,256" stroke="#4A7C59" stroke-width="1.5" fill="none"/>
+      <path d="M282,256 Q285,244 288,256" stroke="#6B9E5E" stroke-width="1.5" fill="none"/>
+      <path d="M130,262 Q132,252 134,262" stroke="#3D6B48" stroke-width="1.5" fill="none"/>
+      <path d="M220,260 Q223,250 226,260" stroke="#4A7C59" stroke-width="1.5" fill="none"/>
+
+      <!-- Tree group with sway -->
+      <g class="tree-group">
+        <!-- Trunk -->
+        <path d="M170,260 Q168,220 165,180 Q163,160 167,140" stroke="#6B5038" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <path d="M175,260 Q173,220 170,180 Q168,160 172,140" stroke="#8B6B4A" stroke-width="8" fill="none" stroke-linecap="round"/>
+
+        <!-- Branches -->
+        <path d="M168,180 Q150,165 130,155" stroke="#7A5C42" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M170,170 Q190,155 210,148" stroke="#7A5C42" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M167,190 Q145,180 125,178" stroke="#6B5038" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M172,165 Q185,145 195,130" stroke="#6B5038" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M166,155 Q150,140 140,125" stroke="#7A5C42" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path d="M172,150 Q180,135 175,120" stroke="#6B5038" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+        <!-- Canopy — layered blossom clusters with watercolor effect -->
+        <g filter="url(#watercolor)">
+          <!-- Back layer (darker, depth) -->
+          <circle cx="135" cy="150" r="28" fill="#D4869A" opacity="0.6"/>
+          <circle cx="205" cy="145" r="25" fill="#D4869A" opacity="0.6"/>
+          <circle cx="170" cy="120" r="30" fill="#D4869A" opacity="0.5"/>
+
+          <!-- Mid layer -->
+          <circle cx="145" cy="140" r="30" fill="#E8A0B0" opacity="0.7"/>
+          <circle cx="195" cy="135" r="28" fill="#E8A0B0" opacity="0.7"/>
+          <circle cx="170" cy="115" r="32" fill="#E8A0B0" opacity="0.65"/>
+          <circle cx="125" cy="165" r="22" fill="#E8A0B0" opacity="0.6"/>
+          <circle cx="215" cy="155" r="20" fill="#E8A0B0" opacity="0.6"/>
+
+          <!-- Front layer (lightest, highlights) -->
+          <circle cx="160" cy="128" r="25" fill="#F0C0D0" opacity="0.6"/>
+          <circle cx="185" cy="125" r="22" fill="#F0C0D0" opacity="0.6"/>
+          <circle cx="140" cy="148" r="18" fill="#F0C0D0" opacity="0.5"/>
+          <circle cx="200" cy="140" r="16" fill="#F0C0D0" opacity="0.5"/>
+          <circle cx="170" cy="100" r="20" fill="#F0C0D0" opacity="0.5"/>
+
+          <!-- Green leaf accents -->
+          <circle cx="120" cy="160" r="15" fill="#4A7C59" opacity="0.5"/>
+          <circle cx="220" cy="150" r="14" fill="#4A7C59" opacity="0.5"/>
+          <circle cx="150" cy="105" r="12" fill="#3D6B48" opacity="0.4"/>
+          <circle cx="190" cy="108" r="13" fill="#4A7C59" opacity="0.4"/>
+          <circle cx="170" cy="90" r="10" fill="#6B9E5E" opacity="0.35"/>
+        </g>
+      </g>
+
+      <!-- Characters sitting -->
+      <!-- Character 1 (left) -->
+      <g transform="translate(130, 238)">
+        <rect x="-5" y="5" width="10" height="12" rx="3" fill="#87AECF"/>
+        <circle cx="0" cy="-2" r="6" fill="#E8C4A0"/>
+        <circle cx="0" cy="-6" r="7" fill="#C46B4A"/>
+        <ellipse cx="-3" cy="-6" rx="3" ry="4" fill="#C46B4A"/>
+        <rect x="-6" y="17" width="5" height="6" rx="2" fill="#6B5038"/>
+        <rect x="1" y="17" width="5" height="6" rx="2" fill="#6B5038"/>
+      </g>
+
+      <!-- Character 2 (right) -->
+      <g transform="translate(215, 238)">
+        <rect x="-5" y="5" width="10" height="12" rx="3" fill="#C45060"/>
+        <circle cx="0" cy="-2" r="6" fill="#E8C4A0"/>
+        <circle cx="0" cy="-6" r="7" fill="#5A4A3A"/>
+        <ellipse cx="3" cy="-6" rx="3" ry="4" fill="#5A4A3A"/>
+        <rect x="-6" y="17" width="5" height="6" rx="2" fill="#6B5038"/>
+        <rect x="1" y="17" width="5" height="6" rx="2" fill="#6B5038"/>
+      </g>
+
+      <!-- Falling petals -->
+      <g class="petal-group" style="animation-delay: 0s;">
+        <ellipse cx="160" cy="95" rx="3" ry="4" fill="#F0C0D0" opacity="0.8" transform="rotate(30 160 95)"/>
+      </g>
+      <g class="petal-group-2" style="animation-delay: 2s;">
+        <ellipse cx="185" cy="100" rx="2.5" ry="3.5" fill="#E8A0B0" opacity="0.7" transform="rotate(-20 185 100)"/>
+      </g>
+      <g class="petal-group" style="animation-delay: 4s;">
+        <ellipse cx="145" cy="110" rx="3" ry="4" fill="#D4869A" opacity="0.75" transform="rotate(45 145 110)"/>
+      </g>
+      <g class="petal-group-2" style="animation-delay: 1s;">
+        <ellipse cx="195" cy="90" rx="2" ry="3" fill="#F0C0D0" opacity="0.7" transform="rotate(-40 195 90)"/>
+      </g>
+      <g class="petal-group" style="animation-delay: 5s;">
+        <ellipse cx="170" cy="105" rx="2.5" ry="3.5" fill="#E8A0B0" opacity="0.8" transform="rotate(15 170 105)"/>
+      </g>
+      <g class="petal-group-2" style="animation-delay: 3s;">
+        <ellipse cx="155" cy="88" rx="2" ry="3" fill="#F0C0D0" opacity="0.65" transform="rotate(-25 155 88)"/>
+      </g>
+
+      <!-- Fireflies -->
+      <g class="firefly" style="animation-duration:8s;animation-delay:0s">
+        <circle cx="100" cy="200" r="2" fill="#F0EDE8" filter="url(#glow)" opacity="0.7"/>
+      </g>
+      <g class="firefly" style="animation-duration:10s;animation-delay:2s">
+        <circle cx="250" cy="210" r="1.5" fill="#F0EDE8" filter="url(#glow)" opacity="0.6"/>
+      </g>
+      <g class="firefly" style="animation-duration:9s;animation-delay:4s">
+        <circle cx="160" cy="220" r="1.5" fill="#F0EDE8" filter="url(#glow)" opacity="0.5"/>
+      </g>
+      <g class="firefly" style="animation-duration:7s;animation-delay:1s">
+        <circle cx="200" cy="195" r="2" fill="#F0EDE8" filter="url(#glow)" opacity="0.6"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="section-divider">RelationshipBloom · 樱花</div>
+
+  <div class="bloom-container">
+    <svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="daySky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#87AECF"/>
+          <stop offset="100%" stop-color="#A8C8E0"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Day sky -->
+      <rect width="160" height="160" fill="url(#daySky)"/>
+
+      <!-- Clouds -->
+      <g opacity="0.5">
+        <ellipse cx="30" cy="25" rx="18" ry="8" fill="#F0EDE8"/>
+        <ellipse cx="40" cy="22" rx="14" ry="7" fill="#F0EDE8"/>
+        <ellipse cx="120" cy="18" rx="15" ry="6" fill="#F0EDE8"/>
+      </g>
+
+      <!-- Ground -->
+      <ellipse cx="80" cy="170" rx="100" ry="30" fill="#8B6B4A"/>
+      <ellipse cx="80" cy="168" rx="100" ry="28" fill="#4A7C59" opacity="0.3"/>
+
+      <!-- Pot -->
+      <path d="M60,145 L65,130 L95,130 L100,145 Z" fill="#A07050" stroke="#8B6040" stroke-width="1"/>
+      <rect x="62" y="126" width="36" height="5" rx="1" fill="#B08060"/>
+
+      <!-- Tree with sway animation -->
+      <g class="bloom-tree">
+        <!-- Trunk -->
+        <path d="M78,130 Q77,110 76,90 Q75,80 78,70" stroke="#8B6B4A" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M80,130 Q79,110 78,90 Q77,80 80,70" stroke="#6B5038" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+        <!-- Branches -->
+        <path d="M77,90 Q65,80 55,75" stroke="#7A5C42" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M79,85 Q90,75 100,70" stroke="#7A5C42" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <path d="M76,80 Q68,70 60,62" stroke="#6B5038" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+        <!-- Canopy -->
+        <circle cx="58" cy="72" r="16" fill="#E8A0B0" opacity="0.65"/>
+        <circle cx="100" cy="68" r="14" fill="#E8A0B0" opacity="0.65"/>
+        <circle cx="78" cy="58" r="18" fill="#E8A0B0" opacity="0.6"/>
+        <circle cx="65" cy="62" r="14" fill="#F0C0D0" opacity="0.55"/>
+        <circle cx="92" cy="60" r="13" fill="#F0C0D0" opacity="0.55"/>
+        <circle cx="78" cy="48" r="14" fill="#F0C0D0" opacity="0.5"/>
+        <circle cx="55" cy="78" r="10" fill="#4A7C59" opacity="0.4"/>
+        <circle cx="105" cy="72" r="9" fill="#4A7C59" opacity="0.4"/>
+        <circle cx="70" cy="50" r="8" fill="#D4869A" opacity="0.5"/>
+        <circle cx="88" cy="48" r="8" fill="#D4869A" opacity="0.5"/>
+      </g>
+
+      <!-- Floating petals -->
+      <g class="petal-group" style="animation-delay:0s;animation-duration:6s">
+        <ellipse cx="70" cy="55" rx="2" ry="3" fill="#F0C0D0" opacity="0.7"/>
+      </g>
+      <g class="petal-group-2" style="animation-delay:3s;animation-duration:7s">
+        <ellipse cx="90" cy="50" rx="1.5" ry="2.5" fill="#E8A0B0" opacity="0.6"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="section-divider">候选人</div>
+
+  <div class="card">
+    <div class="card-header">
+      <svg class="avatar-svg" width="48" height="48" viewBox="0 0 48 48">
+        <rect width="48" height="48" rx="0" fill="#EDE9E3"/>
+        <circle cx="24" cy="18" r="10" fill="#E8C4A0"/>
+        <circle cx="24" cy="13" r="11" fill="#D4869A"/>
+        <ellipse cx="19" cy="13" rx="4" ry="6" fill="#D4869A"/>
+        <circle cx="20" cy="18" r="1.5" fill="#5A4A3A"/>
+        <circle cx="28" cy="18" r="1.5" fill="#5A4A3A"/>
+        <path d="M21,23 Q24,26 27,23" stroke="#C45060" stroke-width="1" fill="none"/>
+        <rect x="14" y="30" width="20" height="16" rx="5" fill="#E8A0B0"/>
+      </svg>
+      <div class="card-info">上海 · 25岁<br><small>♀</small></div>
+    </div>
+    <div class="score-bar">
+      <div class="score-label">85</div>
+      <div class="score-fill"></div>
+    </div>
+    <div class="tags">
+      <span class="tag">温柔体贴</span>
+      <span class="tag">爱好运动</span>
+      <span class="tag">善于倾听</span>
+    </div>
+    <div class="highlights">
+      <span>·</span>你们都喜欢旅行<br>
+      <span>·</span>对生活节奏想法相似<br>
+      <span>·</span>价值观接近
+    </div>
+    <button class="btn">联系TA</button>
+  </div>
+
+  <div class="label">方案二：SVG 矢量插画 (SVG + CSS Animation)</div>
+</div>
+</body>
+</html>

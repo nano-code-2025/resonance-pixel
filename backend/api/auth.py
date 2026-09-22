@@ -4,12 +4,15 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import redis.asyncio as aioredis
+import logging
 
 from db.session import get_db
 from db.models import User
 from services.auth_service import generate_otp, create_token, decode_token
 from services.sms_service import send_otp_sms
 from app_config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -31,12 +34,60 @@ async def get_current_user(
     return user
 
 
+class _InMemoryRedis:
+    """Minimal Redis-like stub for local dev when Redis is unavailable."""
+    def __init__(self):
+        self._store: dict[str, tuple[str, float | None]] = {}
+
+    async def incr(self, key: str) -> int:
+        import time
+        val, exp = self._store.get(key, ("0", None))
+        if exp and time.time() > exp:
+            val = "0"
+        new_val = str(int(val) + 1)
+        self._store[key] = (new_val, exp)
+        return int(new_val)
+
+    async def expire(self, key: str, seconds: int):
+        import time
+        val, _ = self._store.get(key, ("0", None))
+        self._store[key] = (val, time.time() + seconds)
+
+    async def setex(self, key: str, seconds: int, value: str):
+        import time
+        self._store[key] = (str(value), time.time() + seconds)
+
+    async def get(self, key: str) -> bytes | None:
+        import time
+        item = self._store.get(key)
+        if not item:
+            return None
+        val, exp = item
+        if exp and time.time() > exp:
+            del self._store[key]
+            return None
+        return val.encode()
+
+    async def delete(self, key: str):
+        self._store.pop(key, None)
+
+    async def aclose(self):
+        pass
+
+_fallback_redis = _InMemoryRedis()
+
+
 async def get_redis():
-    r = aioredis.from_url(settings.redis_url)
     try:
-        yield r
-    finally:
-        await r.aclose()
+        r = aioredis.from_url(settings.redis_url)
+        await r.ping()
+        try:
+            yield r
+        finally:
+            await r.aclose()
+    except (ConnectionError, OSError, Exception) as e:
+        logger.warning("[DEV] Redis unavailable (%s), using in-memory stub", e)
+        yield _fallback_redis
 
 
 class OtpSendRequest(BaseModel):

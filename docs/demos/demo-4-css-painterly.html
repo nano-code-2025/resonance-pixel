@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resonance Demo 4 — CSS Painterly / Watercolor</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E8E4DE;
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh; padding: 20px 0;
+    font-family: 'Courier New', monospace;
+  }
+  .phone {
+    width: 390px; background: #F3F1ED;
+    border: 1px solid #C5C1BB;
+    padding: 24px 20px 32px;
+  }
+  .header { text-align: center; margin-bottom: 16px; }
+  .header h1 { font-size: 17px; color: #1D1B1B; font-weight: 500; letter-spacing: 3px; }
+  .header p { font-size: 14px; color: #4F4D4A; font-family: sans-serif; margin-top: 4px; }
+
+  /* ===== MAIN SCENE ===== */
+  .scene {
+    width: 350px; height: 300px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB;
+    position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #1E2A4A 0%, #2B3A67 40%, #3A4A78 70%, #4A5A88 100%);
+  }
+
+  /* Warm glow */
+  .scene .glow {
+    position: absolute;
+    width: 280px; height: 240px;
+    left: 50%; top: 45%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse, rgba(196,149,106,0.35) 0%, rgba(196,149,106,0.1) 40%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Stars */
+  .star {
+    position: absolute; border-radius: 50%;
+    background: #F0EDE8;
+    animation: twinkle ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.15; transform: scale(1); }
+    50% { opacity: 0.9; transform: scale(1.3); }
+  }
+
+  /* Ground */
+  .scene .ground {
+    position: absolute; bottom: 0; left: -20px; right: -20px;
+    height: 80px;
+    background: linear-gradient(180deg, #4A7C59 0%, #3D6B48 5%, #8B6B4A 15%, #6B5038 60%, #5A4030 100%);
+    border-radius: 50% 50% 0 0 / 30px 30px 0 0;
+  }
+
+  /* Tree trunk */
+  .trunk {
+    position: absolute;
+    bottom: 60px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 120px;
+    background: linear-gradient(90deg, #5A4030 0%, #8B6B4A 40%, #7A5C42 70%, #6B5038 100%);
+    border-radius: 4px 4px 8px 8px;
+  }
+  .trunk::before {
+    content: '';
+    position: absolute; top: 20px; left: -15px;
+    width: 40px; height: 8px;
+    background: #7A5C42;
+    border-radius: 4px;
+    transform: rotate(-25deg);
+  }
+  .trunk::after {
+    content: '';
+    position: absolute; top: 40px; right: -18px;
+    width: 35px; height: 7px;
+    background: #6B5038;
+    border-radius: 4px;
+    transform: rotate(20deg);
+  }
+
+  /* Branch extra */
+  .branch-1 {
+    position: absolute; bottom: 155px; left: calc(50% - 25px);
+    width: 30px; height: 6px;
+    background: #7A5C42; border-radius: 3px;
+    transform: rotate(-35deg);
+  }
+  .branch-2 {
+    position: absolute; bottom: 140px; left: calc(50% + 5px);
+    width: 25px; height: 5px;
+    background: #6B5038; border-radius: 3px;
+    transform: rotate(30deg);
+  }
+
+  /* Canopy — overlapping soft circles */
+  .canopy {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(1px);
+    animation: sway 6s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+  @keyframes sway {
+    0%, 100% { transform: translateX(0) rotate(-0.5deg); }
+    50% { transform: translateX(2px) rotate(0.5deg); }
+  }
+
+  /* Petal particles */
+  .petal {
+    position: absolute;
+    border-radius: 50% 50% 50% 20%;
+    animation: petalDrift linear infinite;
+    pointer-events: none;
+  }
+  @keyframes petalDrift {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0.8; }
+    20% { transform: translate(12px, 50px) rotate(72deg); opacity: 0.7; }
+    40% { transform: translate(-8px, 110px) rotate(144deg); opacity: 0.6; }
+    60% { transform: translate(18px, 170px) rotate(216deg); opacity: 0.4; }
+    80% { transform: translate(-5px, 230px) rotate(288deg); opacity: 0.2; }
+    100% { transform: translate(10px, 300px) rotate(360deg); opacity: 0; }
+  }
+
+  /* Fireflies */
+  .firefly {
+    position: absolute;
+    border-radius: 50%;
+    background: #F0EDE8;
+    box-shadow: 0 0 6px 3px rgba(240,237,232,0.4), 0 0 12px 6px rgba(196,149,106,0.2);
+    animation: fireflyMove ease-in-out infinite;
+  }
+  @keyframes fireflyMove {
+    0% { transform: translate(0, 0); opacity: 0.2; }
+    20% { transform: translate(15px, -20px); opacity: 0.8; }
+    40% { transform: translate(-10px, -35px); opacity: 0.4; }
+    60% { transform: translate(20px, -15px); opacity: 0.9; }
+    80% { transform: translate(-5px, -30px); opacity: 0.5; }
+    100% { transform: translate(0, 0); opacity: 0.2; }
+  }
+
+  /* Characters */
+  .character {
+    position: absolute; bottom: 55px;
+  }
+  .char-body {
+    width: 16px; height: 20px;
+    border-radius: 5px 5px 3px 3px;
+    margin: 0 auto;
+  }
+  .char-head {
+    width: 14px; height: 14px;
+    background: #E8C4A0;
+    border-radius: 50%;
+    margin: 0 auto 2px;
+  }
+  .char-hair {
+    width: 16px; height: 10px;
+    border-radius: 8px 8px 0 0;
+    margin: 0 auto;
+    position: relative;
+    top: 4px;
+  }
+  .char-legs {
+    display: flex; gap: 4px; justify-content: center;
+  }
+  .char-leg {
+    width: 5px; height: 8px;
+    background: #6B5038;
+    border-radius: 0 0 2px 2px;
+  }
+
+  /* ===== BLOOM MINI ===== */
+  .section-divider {
+    font-size: 11px; color: #6B6966; letter-spacing: 2px;
+    text-transform: uppercase; margin: 20px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-divider::after { content: ''; flex: 1; height: 1px; background: #C5C1BB; }
+
+  .bloom-box {
+    width: 160px; height: 160px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB;
+    position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #87AECF 0%, #A8C8E0 60%, #C0D8E8 100%);
+  }
+  .bloom-ground {
+    position: absolute; bottom: 0; left: -10px; right: -10px;
+    height: 30px;
+    background: linear-gradient(180deg, #4A7C59, #8B6B4A);
+    border-radius: 50% 50% 0 0 / 10px;
+  }
+  .bloom-pot {
+    position: absolute; bottom: 22px; left: 50%;
+    transform: translateX(-50%);
+    width: 40px; height: 22px;
+    background: linear-gradient(180deg, #B08060, #A07050);
+    border-radius: 2px 2px 6px 6px;
+    clip-path: polygon(5% 0%, 95% 0%, 85% 100%, 15% 100%);
+  }
+  .bloom-pot-rim {
+    position: absolute; bottom: 42px; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 6px;
+    background: #B08060;
+    border-radius: 2px;
+  }
+  .bloom-stem {
+    position: absolute; bottom: 42px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 50px;
+    background: linear-gradient(90deg, #3D6B48, #4A7C59, #3D6B48);
+    border-radius: 2px;
+    animation: bloomSway 4s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+  @keyframes bloomSway {
+    0%, 100% { transform: translateX(-50%) rotate(-2deg); }
+    50% { transform: translateX(-50%) rotate(2deg); }
+  }
+  .bloom-leaf {
+    position: absolute;
+    width: 14px; height: 8px;
+    background: #4A7C59;
+    border-radius: 50% 50% 50% 0;
+    filter: blur(0.3px);
+  }
+  .bloom-flower {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(0.5px);
+  }
+  .bloom-cloud {
+    position: absolute;
+    background: rgba(240,237,232,0.4);
+    border-radius: 50%;
+  }
+  .bloom-mini-petal {
+    position: absolute;
+    width: 3px; height: 4px;
+    border-radius: 50%;
+    animation: miniPetalFall 5s linear infinite;
+  }
+  @keyframes miniPetalFall {
+    0% { transform: translate(0, 0); opacity: 0.7; }
+    50% { transform: translate(8px, 50px) rotate(180deg); opacity: 0.4; }
+    100% { transform: translate(-5px, 100px) rotate(360deg); opacity: 0; }
+  }
+
+  /* ===== CARD with glassmorphism ===== */
+  .card {
+    background: rgba(251,249,246,0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(197,193,187,0.5);
+    padding: 16px; margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(139,107,74,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139,107,74,0.15);
+  }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avatar-paint {
+    width: 48px; height: 48px; background: #EDE9E3;
+    position: relative; overflow: hidden;
+  }
+  .avatar-paint .a-head {
+    width: 24px; height: 24px; background: #E8C4A0;
+    border-radius: 50%; position: absolute;
+    top: 6px; left: 12px;
+  }
+  .avatar-paint .a-hair {
+    width: 26px; height: 14px; background: #D4869A;
+    border-radius: 13px 13px 0 0; position: absolute;
+    top: 3px; left: 11px;
+  }
+  .avatar-paint .a-body {
+    width: 30px; height: 18px; background: #E8A0B0;
+    border-radius: 8px 8px 0 0; position: absolute;
+    bottom: 0; left: 9px;
+  }
+  .card-info { font-size: 14px; color: #1D1B1B; }
+  .card-info small { color: #6B6966; font-size: 12px; }
+  .score-bar { height: 8px; background: #DDD9D3; margin: 10px 0; position: relative; border-radius: 4px; overflow: hidden; }
+  .score-fill { height: 100%; background: linear-gradient(90deg, #C4956A, #D4A87A); width: 85%; border-radius: 4px; }
+  .score-label { font-size: 12px; color: #C4956A; position: absolute; right: 0; top: -16px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .tag {
+    background: rgba(237,233,227,0.8); color: #4F4D4A;
+    font-size: 12px; padding: 3px 8px; font-family: sans-serif;
+    backdrop-filter: blur(4px);
+  }
+  .highlights { font-size: 13px; color: #4F4D4A; font-family: sans-serif; line-height: 1.8; }
+  .highlights span { color: #C4956A; margin-right: 4px; }
+  .btn {
+    display: block; width: 100%; padding: 12px;
+    background: linear-gradient(135deg, #C4956A, #B5845B);
+    color: #FBF9F6; border: none;
+    font-size: 14px; font-family: 'Courier New', monospace;
+    cursor: pointer; text-align: center; margin-top: 12px;
+    box-shadow: 0 2px 8px rgba(196,149,106,0.3);
+    transition: box-shadow 0.2s, transform 0.1s;
+  }
+  .btn:hover { box-shadow: 0 4px 16px rgba(196,149,106,0.4); }
+  .btn:active { transform: translateY(1px); }
+  .label {
+    text-align: center; margin-top: 20px; padding: 12px;
+    font-size: 13px; color: #6B6966; border-top: 1px solid #C5C1BB;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <h1>RESONANCE</h1>
+    <p>找到同频的人</p>
+  </div>
+
+  <!-- MAIN SCENE -->
+  <div class="scene">
+    <!-- Warm glow -->
+    <div class="glow"></div>
+
+    <!-- Stars -->
+    <div class="star" style="width:3px;height:3px;top:15px;left:25px;animation-duration:3s;animation-delay:0s"></div>
+    <div class="star" style="width:2px;height:2px;top:35px;left:80px;animation-duration:4s;animation-delay:0.5s"></div>
+    <div class="star" style="width:3px;height:3px;top:10px;left:140px;animation-duration:3.5s;animation-delay:1s"></div>
+    <div class="star" style="width:2px;height:2px;top:25px;left:200px;animation-duration:5s;animation-delay:1.5s"></div>
+    <div class="star" style="width:3px;height:3px;top:15px;left:260px;animation-duration:3s;animation-delay:0.3s"></div>
+    <div class="star" style="width:2px;height:2px;top:40px;left:310px;animation-duration:4.5s;animation-delay:2s"></div>
+    <div class="star" style="width:2px;height:2px;top:55px;left:55px;animation-duration:3.2s;animation-delay:0.8s"></div>
+    <div class="star" style="width:3px;height:3px;top:50px;left:120px;animation-duration:4s;animation-delay:1.2s"></div>
+    <div class="star" style="width:2px;height:2px;top:45px;left:230px;animation-duration:3.8s;animation-delay:0.2s"></div>
+    <div class="star" style="width:2px;height:2px;top:60px;left:290px;animation-duration:5s;animation-delay:2.5s"></div>
+    <div class="star" style="width:3px;height:3px;top:8px;left:175px;animation-duration:3s;animation-delay:3s"></div>
+    <div class="star" style="width:2px;height:2px;top:70px;left:15px;animation-duration:4.2s;animation-delay:0.6s"></div>
+
+    <!-- Ground -->
+    <div class="ground"></div>
+
+    <!-- Branches -->
+    <div class="branch-1"></div>
+    <div class="branch-2"></div>
+
+    <!-- Trunk -->
+    <div class="trunk"></div>
+
+    <!-- Canopy layers — back to front -->
+    <!-- Back layer (dark pink, large) -->
+    <div class="canopy" style="width:80px;height:65px;background:rgba(212,134,154,0.55);top:65px;left:100px;animation-delay:0.5s"></div>
+    <div class="canopy" style="width:75px;height:60px;background:rgba(212,134,154,0.55);top:60px;left:200px;animation-delay:1s"></div>
+    <div class="canopy" style="width:70px;height:55px;background:rgba(74,124,89,0.4);top:80px;left:85px;animation-delay:0.3s"></div>
+    <div class="canopy" style="width:65px;height:50px;background:rgba(74,124,89,0.4);top:75px;left:220px;animation-delay:0.8s"></div>
+
+    <!-- Mid layer -->
+    <div class="canopy" style="width:90px;height:75px;background:rgba(232,160,176,0.6);top:55px;left:115px;animation-delay:0.2s"></div>
+    <div class="canopy" style="width:85px;height:70px;background:rgba(232,160,176,0.6);top:50px;left:175px;animation-delay:0.7s"></div>
+    <div class="canopy" style="width:70px;height:60px;background:rgba(232,160,176,0.55);top:40px;left:145px;animation-delay:1.2s"></div>
+
+    <!-- Front layer (lightest) -->
+    <div class="canopy" style="width:75px;height:65px;background:rgba(240,192,208,0.5);top:48px;left:130px;animation-delay:0.4s"></div>
+    <div class="canopy" style="width:65px;height:55px;background:rgba(240,192,208,0.5);top:42px;left:190px;animation-delay:0.9s"></div>
+    <div class="canopy" style="width:55px;height:50px;background:rgba(240,192,208,0.45);top:35px;left:158px;animation-delay:1.5s"></div>
+
+    <!-- Highlight dots (flower centers) -->
+    <div class="canopy" style="width:12px;height:12px;background:rgba(255,255,240,0.4);top:60px;left:165px;filter:blur(2px)"></div>
+    <div class="canopy" style="width:10px;height:10px;background:rgba(255,255,240,0.35);top:52px;left:190px;filter:blur(2px)"></div>
+    <div class="canopy" style="width:8px;height:8px;background:rgba(255,255,240,0.3);top:70px;left:140px;filter:blur(2px)"></div>
+
+    <!-- Falling petals -->
+    <div class="petal" style="width:5px;height:6px;background:#F0C0D0;top:80px;left:155px;animation-duration:8s;animation-delay:0s"></div>
+    <div class="petal" style="width:4px;height:5px;background:#E8A0B0;top:70px;left:185px;animation-duration:10s;animation-delay:2s"></div>
+    <div class="petal" style="width:5px;height:6px;background:#D4869A;top:90px;left:140px;animation-duration:9s;animation-delay:4s"></div>
+    <div class="petal" style="width:4px;height:5px;background:#F0C0D0;top:75px;left:200px;animation-duration:7s;animation-delay:1s"></div>
+    <div class="petal" style="width:3px;height:4px;background:#E8A0B0;top:85px;left:170px;animation-duration:11s;animation-delay:3s"></div>
+    <div class="petal" style="width:5px;height:6px;background:#F0C0D0;top:65px;left:160px;animation-duration:8.5s;animation-delay:5s"></div>
+
+    <!-- Fireflies -->
+    <div class="firefly" style="width:3px;height:3px;top:180px;left:90px;animation-duration:8s;animation-delay:0s"></div>
+    <div class="firefly" style="width:2px;height:2px;top:190px;left:250px;animation-duration:10s;animation-delay:2s"></div>
+    <div class="firefly" style="width:3px;height:3px;top:200px;left:160px;animation-duration:9s;animation-delay:4s"></div>
+    <div class="firefly" style="width:2px;height:2px;top:175px;left:200px;animation-duration:7s;animation-delay:1s"></div>
+
+    <!-- Characters -->
+    <div class="character" style="left: 120px;">
+      <div class="char-hair" style="background:#C46B4A"></div>
+      <div class="char-head"></div>
+      <div class="char-body" style="background:#87AECF"></div>
+      <div class="char-legs">
+        <div class="char-leg"></div>
+        <div class="char-leg"></div>
+      </div>
+    </div>
+    <div class="character" style="left: 200px;">
+      <div class="char-hair" style="background:#5A4A3A"></div>
+      <div class="char-head"></div>
+      <div class="char-body" style="background:#C45060"></div>
+      <div class="char-legs">
+        <div class="char-leg"></div>
+        <div class="char-leg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">RelationshipBloom · 樱花</div>
+
+  <!-- BLOOM MINI -->
+  <div class="bloom-box">
+    <!-- Clouds -->
+    <div class="bloom-cloud" style="width:30px;height:12px;top:12px;left:15px"></div>
+    <div class="bloom-cloud" style="width:24px;height:10px;top:8px;left:35px"></div>
+    <div class="bloom-cloud" style="width:20px;height:8px;top:15px;left:110px"></div>
+
+    <div class="bloom-ground"></div>
+    <div class="bloom-pot"></div>
+    <div class="bloom-pot-rim"></div>
+
+    <div class="bloom-stem">
+      <!-- Leaves on stem -->
+      <div class="bloom-leaf" style="top:20px;left:-12px;transform:rotate(-30deg)"></div>
+      <div class="bloom-leaf" style="top:10px;right:-12px;transform:rotate(30deg) scaleX(-1)"></div>
+      <div class="bloom-leaf" style="top:30px;right:-10px;transform:rotate(25deg) scaleX(-1);width:12px;height:7px"></div>
+
+      <!-- Flower cluster at top -->
+      <div class="bloom-flower" style="width:22px;height:22px;background:rgba(232,160,176,0.7);top:-15px;left:-9px"></div>
+      <div class="bloom-flower" style="width:18px;height:18px;background:rgba(240,192,208,0.65);top:-12px;left:-2px"></div>
+      <div class="bloom-flower" style="width:20px;height:20px;background:rgba(212,134,154,0.6);top:-18px;left:-14px"></div>
+      <div class="bloom-flower" style="width:16px;height:16px;background:rgba(240,192,208,0.7);top:-20px;left:-6px"></div>
+      <div class="bloom-flower" style="width:14px;height:14px;background:rgba(232,160,176,0.6);top:-8px;left:-15px"></div>
+      <div class="bloom-flower" style="width:6px;height:6px;background:rgba(255,255,240,0.4);top:-12px;left:0;filter:blur(1px)"></div>
+
+      <!-- Side flower clusters -->
+      <div class="bloom-flower" style="width:16px;height:16px;background:rgba(232,160,176,0.6);top:5px;left:-22px"></div>
+      <div class="bloom-flower" style="width:14px;height:14px;background:rgba(240,192,208,0.55);top:3px;left:10px"></div>
+      <div class="bloom-flower" style="width:12px;height:12px;background:rgba(74,124,89,0.45);top:8px;left:-18px"></div>
+      <div class="bloom-flower" style="width:10px;height:10px;background:rgba(74,124,89,0.4);top:6px;left:14px"></div>
+    </div>
+
+    <!-- Mini petals -->
+    <div class="bloom-mini-petal" style="background:#F0C0D0;top:50px;left:70px;animation-delay:0s"></div>
+    <div class="bloom-mini-petal" style="background:#E8A0B0;top:45px;left:90px;animation-delay:2s"></div>
+    <div class="bloom-mini-petal" style="background:#F0C0D0;top:55px;left:60px;animation-delay:3.5s"></div>
+  </div>
+
+  <div class="section-divider">候选人</div>
+
+  <!-- Glassmorphism card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="avatar-paint">
+        <div class="a-hair"></div>
+        <div class="a-head"></div>
+        <div class="a-body"></div>
+      </div>
+      <div class="card-info">上海 · 25岁<br><small>♀</small></div>
+    </div>
+    <div class="score-bar">
+      <div class="score-label">85</div>
+      <div class="score-fill"></div>
+    </div>
+    <div class="tags">
+      <span class="tag">温柔体贴</span>
+      <span class="tag">爱好运动</span>
+      <span class="tag">善于倾听</span>
+    </div>
+    <div class="highlights">
+      <span>·</span>你们都喜欢旅行<br>
+      <span>·</span>对生活节奏想法相似<br>
+      <span>·</span>价值观接近
+    </div>
+    <button class="btn">联系TA</button>
+  </div>
+
+  <div class="label">方案四：CSS 手绘水彩风 (Pure CSS Painterly)</div>
+</div>
+</body>
+</html>

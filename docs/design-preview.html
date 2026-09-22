@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, initial-scale=1.0">
+<title>Resonance Design Preview v2</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F3F1ED;
+    --card: #FBF9F6;
+    --card-alt: #EDE9E3;
+    --text: #1D1B1B;
+    --text2: #4F4D4A;
+    --muted: #6B6966;
+    --faint: #9E9A94;
+    --accent: #D4654A;
+    --accent-hover: #C05840;
+    --accent-light: #F0D5CC;
+    --border: #C5C1BB;
+    --border-light: #DDD9D3;
+    --success: #5A9E6F;
+    --warning: #E08840;
+    --error: #C75050;
+    --sky-night: #2B3A67;
+    --sky-day: #87AECF;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; font-size:14px; line-height:1.6; max-width:390px; margin:0 auto; padding:16px; padding-bottom:80px; }
+  h1 { font-family:'IBM Plex Mono',monospace; font-size:17px; font-weight:500; margin-bottom:16px; }
+  h2 { font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:2px; margin:32px 0 12px; }
+  h2::after { content:''; display:inline-block; width:80px; height:1px; background:var(--border); vertical-align:middle; margin-left:8px; }
+  h3 { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:500; color:var(--text2); margin:16px 0 8px; }
+  .card { background:var(--card); border:1px solid var(--border); padding:16px; margin-bottom:12px; }
+  .btn { padding:10px 24px; font-family:'IBM Plex Mono',monospace; font-size:13px; cursor:pointer; border:none; }
+  .btn-p { background:var(--accent); color:white; width:100%; }
+  .btn-p:hover { background:var(--accent-hover); }
+  .btn-p:active { transform:translateY(1px); }
+  .btn-s { background:transparent; border:1px solid var(--border); color:var(--text2); }
+  .btn-s:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-sm { padding:6px 12px; font-size:11px; }
+  .tag { display:inline-block; background:var(--card-alt); color:var(--text2); font-family:'IBM Plex Mono',monospace; font-size:11px; padding:3px 8px; margin:2px; }
+  .tag.sel { background:var(--accent-light); color:var(--text); border:1px solid var(--accent); }
+  .input { width:100%; background:var(--card); border:none; border-bottom:1px solid var(--border); padding:8px 0; font-family:'Inter',sans-serif; font-size:14px; color:var(--text); outline:none; }
+  .input:focus { border-bottom-color:var(--accent); }
+  .input::placeholder { color:var(--faint); }
+  .lbl { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .tab-bar { display:flex; border-top:1px solid var(--border); background:var(--bg); padding:10px 0 6px; position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:390px; }
+  .tab { flex:1; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); cursor:pointer; }
+  .tab.active { color:var(--accent); }
+  .tab .badge { background:var(--error); color:white; font-size:9px; padding:1px 5px; margin-left:2px; vertical-align:top; }
+  .pbar { height:6px; background:var(--border-light); margin:8px 0; }
+  .pfill { height:100%; background:var(--accent); }
+  .divider { display:flex; align-items:center; gap:8px; margin:20px 0 12px; }
+  .divider span { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
+  .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+  .frame { background:var(--bg); border:2px solid var(--border); padding:16px; margin:12px 0; position:relative; }
+  .frame::before { content:attr(data-p); position:absolute; top:-10px; left:12px; background:var(--bg); padding:0 6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent); }
+  .quote { font-style:italic; color:var(--muted); font-size:13px; text-align:center; margin:12px 0; line-height:1.8; }
+
+  /* Collapsible sections */
+  .sec-h { cursor:pointer; user-select:none; display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-light); }
+  .sec-h:hover span:first-child { color:var(--accent); }
+  .sec-h span { font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--text2); }
+  .sec-c { padding:12px 0; }
+  .sec-c.hide { display:none; }
+
+  /* Palette grid */
+  .pal { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+  .sw { text-align:center; }
+  .sw-b { width:100%; aspect-ratio:1; border:1px solid var(--border); }
+  .sw-l { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); margin-top:3px; }
+
+  /* Accent picker */
+  .accent-opts { display:flex; gap:8px; margin:12px 0; flex-wrap:wrap; }
+  .accent-opt { width:60px; height:60px; cursor:pointer; position:relative; border:3px solid transparent; display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; }
+  .accent-opt.active { border-color:var(--text); }
+  .accent-opt span { font-family:'IBM Plex Mono',monospace; font-size:8px; color:white; text-shadow:0 1px 2px rgba(0,0,0,0.5); }
+
+  /* Species grid - bigger */
+  .sp-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
+  .sp-item { text-align:center; }
+  .sp-item canvas { image-rendering:pixelated; border:1px solid var(--border); cursor:pointer; }
+  .sp-item .nm { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); margin-top:2px; }
+
+  /* Round progress */
+  .rp { display:flex; align-items:center; margin:8px 0; }
+  .rd { width:14px; height:14px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:7px; }
+  .rd.done { background:var(--accent); border-color:var(--accent); color:white; }
+  .rd.cur { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-light); }
+  .rl { flex:1; height:2px; background:var(--border); }
+  .rl.done { background:var(--accent); }
+  .rlb { display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); }
+
+  /* Photo reveal */
+  .reveal-row { display:flex; gap:12px; align-items:center; justify-content:center; margin:12px 0; }
+  .reveal-item { text-align:center; }
+  .reveal-item canvas, .reveal-item .photo-placeholder { image-rendering:pixelated; border:1px solid var(--border); }
+  .photo-placeholder { width:56px; height:56px; background:var(--card-alt); display:flex; align-items:center; justify-content:center; font-size:24px; border:1px solid var(--border); }
+  .reveal-arrow { color:var(--accent); font-family:'IBM Plex Mono',monospace; font-size:16px; }
+  .reveal-label { font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--muted); margin-top:4px; }
+
+  .sky-row { display:flex; gap:4px; margin:8px 0; }
+  .sky-seg { flex:1; height:48px; display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; }
+  .sky-seg span { font-family:'IBM Plex Mono',monospace; font-size:9px; color:white; text-shadow:0 1px 2px rgba(0,0,0,0.5); }
+
+  .stars { display:flex; gap:6px; justify-content:center; margin:12px 0; }
+  .star { width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; background:var(--card-alt); font-family:'IBM Plex Mono',monospace; }
+  .star.sel { background:var(--accent); color:white; }
+</style>
+</head>
+<body>
+
+<h1>RESONANCE 共振</h1>
+<p style="color:var(--text2);font-size:12px;margin-bottom:20px;">Design Preview v2 — Ghibli Pixel Parchment</p>
+
+<!-- ==== ACCENT COLOR PICKER ==== -->
+<div>
+  <div class="sec-h" onclick="tog(this)"><span>00 ACCENT COLOR (click to switch)</span><span>▼</span></div>
+  <div class="sec-c">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:8px;">Current: <strong id="currentAccent">#D4654A</strong> — click a swatch to apply site-wide:</p>
+    <div class="accent-opts">
+      <div class="accent-opt active" style="background:#D4654A" onclick="setAccent('#D4654A','#C05840','#F0D5CC',this)" title="Warm Terracotta"><span>#D4654A</span></div>
+      <div class="accent-opt" style="background:#E07850" onclick="setAccent('#E07850','#CC6A44','#F5DDD0',this)" title="Coral Clay"><span>#E07850</span></div>
+      <div class="accent-opt" style="background:#D4785A" onclick="setAccent('#D4785A','#C06A4E','#F0DDD0',this)" title="Soft Rust"><span>#D4785A</span></div>
+      <div class="accent-opt" style="background:#C4956A" onclick="setAccent('#C4956A','#B5845B','#E8D5C0',this)" title="Old Amber (original)"><span>#C4956A</span></div>
+      <div class="accent-opt" style="background:#CF6050" onclick="setAccent('#CF6050','#B85545','#F0CCC5',this)" title="Apple Red-Orange"><span>#CF6050</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-p" style="flex:1">Primary Button</button>
+      <button class="btn btn-s" style="flex:1">Secondary</button>
+    </div>
+    <div style="margin-top:8px;">
+      <span class="tag sel">Selected Tag</span>
+      <span class="tag">Normal Tag</span>
+    </div>
+    <div class="pbar" style="margin-top:8px;"><div class="pfill" style="width:65%"></div></div>
+  </div>
+</div>
+
+<!-- ==== 1. COLOR PALETTE ==== -->
+<div>
+  <div class="sec-h" onclick="tog(this)"><span>01 COLOR PALETTE</span><span>▼</span></div>
+  <div class="sec-c">
+    <h3>Core UI</h3>
+    <div class="pal">
+      <div class="sw"><div class="sw-b" style="background:#F3F1ED"></div><div class="sw-l">Bg #F3F1ED</div></div>
+      <div class="sw"><div class="sw-b" style="background:#FBF9F6"></div><div class="sw-l">Card #FBF9F6</div></div>
+      <div class="sw"><div class="sw-b" style="background:#1D1B1B"></div><div class="sw-l">Text #1D1B1B</div></div>
+      <div class="sw"><div class="sw-b" style="background:#4F4D4A"></div><div class="sw-l">Text2 #4F4D4A</div></div>
+    </div>
+    <div class="pal">
+      <div class="sw"><div class="sw-b" style="background:#6B6966"></div><div class="sw-l">Muted</div></div>
+      <div class="sw"><div class="sw-b" style="background:#9E9A94"></div><div class="sw-l">Faint</div></div>
+      <div class="sw"><div class="sw-b" style="background:#C5C1BB"></div><div class="sw-l">Border</div></div>
+      <div class="sw"><div class="sw-b" style="background:#5A9E6F"></div><div class="sw-l">Success</div></div>
+    </div>
+    <h3>Sky Cycle</h3>
+    <div class="sky-row">
+      <div class="sky-seg" style="background:linear-gradient(to top,#D4915A,#2B3A67)"><span>Dawn</span></div>
+      <div class="sky-seg" style="background:#87AECF"><span>Day</span></div>
+      <div class="sky-seg" style="background:linear-gradient(to top,#D4915A,#87AECF)"><span>Dusk</span></div>
+      <div class="sky-seg" style="background:#2B3A67"><span>Night</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== 2. TYPOGRAPHY ==== -->
+<div>
+  <div class="sec-h" onclick="tog(this)"><span>02 TYPOGRAPHY</span><span>▶</span></div>
+  <div class="sec-c hide">
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:500;margin-bottom:6px;">RESONANCE 共振 (17px Plex Mono)</p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px;">SECTION HEADER (14px)</p>
+    <p style="font-size:14px;color:var(--text2);margin-bottom:6px;">正文 Inter — 对你来说，一个完美的一天是什么样的？</p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;margin-bottom:6px;">Card Title (14px Plex Mono 600)</p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);">Micro · 12px · timestamps</p>
+  </div>
+</div>
+
+<!-- ==== 3. PHOTO REVEAL ==== -->
+<div>
+  <div class="sec-h" onclick="tog(this)"><span>03 PHOTO REVEAL TIMELINE</span><span>▼</span></div>
+  <div class="sec-c">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">真人照片揭露：Pool/Inbox 用像素头像，Round 1完成后解锁真人照片</p>
+    <div class="reveal-row">
+      <div class="reveal-item">
+        <canvas id="revealAvatar" width="56" height="56" style="image-rendering:pixelated;width:56px;height:56px;border:1px solid var(--border)"></canvas>
+        <div class="reveal-label">Pool/Inbox</div>
+        <div class="reveal-label">像素头像</div>
+      </div>
+      <div class="reveal-arrow">→</div>
+      <div class="reveal-item">
+        <canvas id="revealAvatar2" width="56" height="56" style="image-rendering:pixelated;width:56px;height:56px;border:1px solid var(--border)"></canvas>
+        <div class="reveal-label">Round 1 中</div>
+        <div class="reveal-label">仍像素头像</div>
+      </div>
+      <div class="reveal-arrow">→</div>
+      <div class="reveal-item">
+        <div class="photo-placeholder" style="width:56px;height:56px;background:linear-gradient(135deg,#E8C4A0,#D4A080);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--accent);">📷</div>
+        <div class="reveal-label" style="color:var(--accent);">Round 1 后</div>
+        <div class="reveal-label" style="color:var(--accent);">真人照片!</div>
+      </div>
+    </div>
+    <p style="font-size:11px;color:var(--faint);text-align:center;">双方完成 Round 1 全部5题 + 双方选择「继续」后自动解锁</p>
+
+    <!-- Pipeline card showing photo revealed -->
+    <h3>Pipeline Card — Round 2 (照片已解锁)</h3>
+    <div class="card">
+      <div style="display:flex;gap:12px;align-items:start;">
+        <canvas id="r2bloom" width="100" height="140" style="image-rendering:pixelated;width:90px;height:126px;"></canvas>
+        <div style="flex:1;padding-top:4px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <div style="width:40px;height:40px;border-radius:0;background:linear-gradient(135deg,#E8C4A0,#D4A080);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;">📷</div>
+            <div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;">上海</span>
+              <span class="tag" style="font-size:9px;padding:1px 4px;">我发起</span>
+            </div>
+          </div>
+          <div><span class="tag" style="font-size:10px;">温柔体贴</span><span class="tag" style="font-size:10px;">善于倾听</span></div>
+        </div>
+      </div>
+      <div style="padding:0 4px;margin-top:8px;">
+        <div class="rp">
+          <div class="rd done">✓</div><div class="rl done"></div>
+          <div class="rd cur"></div><div class="rl"></div>
+          <div class="rd"></div>
+        </div>
+        <div class="rlb"><span>初见 ✓</span><span>深聊</span><span>见见我的圈子</span></div>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:20%"></div></div>
+      <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">1/5</div>
+      <button class="btn btn-p" style="margin-top:8px;width:100%;">开始深聊</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== 4. PLANT SPECIES (LARGER CANVAS) ==== -->
+<div>
+  <div class="sec-h" onclick="tog(this)"><span>04 PLANT SPECIES (15 — click to cycle stages)</span><span>▼</span></div>
+  <div class="sec-c">
+    <p style="font-size:11px;color:var(--text2);margin-bottom:8px;">Grid: 32x44px, larger canvas for clear differentiation. Includes woody trees (seed→tree→fruit).</p>
+    <div class="sp-grid" id="speciesGrid"></div>
+  </div>
+</div>
+
+<!-- ==== 5. PAGE LAYOUTS ==== -->
+<div>
+  <div class="sec-h" onclick="tog(this)"><span>05 PAGE LAYOUTS</span><span>▼</span></div>
+  <div class="sec-c">
+
+    <!-- Login -->
+    <div class="frame" data-p="Login">
+      <div style="text-align:center;padding:16px 0;">
+        <canvas id="loginHero" width="160" height="160" style="image-rendering:pixelated;width:160px;height:160px;"></canvas>
+      </div>
+      <p class="quote">"你和我有共同的记忆，<br>比前方的路还长。"</p>
+      <h1 style="text-align:center;margin:12px 0 4px;">RESONANCE</h1>
+      <p style="text-align:center;color:var(--text2);font-size:14px;margin-bottom:20px;">找到同频的人</p>
+      <div class="lbl">手机号</div>
+      <input class="input" placeholder="13800000000" style="margin-bottom:12px;">
+      <button class="btn btn-p">获取验证码</button>
+    </div>
+
+    <!-- Pool -->
+    <div class="frame" data-p="Pool (发现)">
+      <div class="divider"><span>── 候选人池</span></div>
+      <div class="card">
+        <div style="display:flex;gap:12px;align-items:start;margin-bottom:8px;">
+          <canvas id="av1" width="48" height="48" style="image-rendering:pixelated;width:48px;height:48px;"></canvas>
+          <div><span style="font-family:'IBM Plex Mono',monospace;font-size:14px;">上海 · 25岁</span> <span style="font-size:12px;color:var(--muted)">♀</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin:6px 0;"><div style="flex:1;height:8px;background:var(--border-light)"><div style="width:85%;height:100%;background:var(--accent)"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent)">85</span></div>
+        <p style="color:var(--text2);font-size:13px;"><span style="color:var(--accent)">·</span> 你们都喜欢旅行</p>
+        <p style="color:var(--text2);font-size:13px;"><span style="color:var(--accent)">·</span> 对生活节奏想法相似</p>
+        <button class="btn btn-p" style="margin-top:10px;width:100%">联系TA</button>
+      </div>
+    </div>
+
+    <!-- Pipeline Round 1 -->
+    <div class="frame" data-p="Pipeline R1 (像素头像)">
+      <div class="divider"><span>── 我的缘分</span></div>
+      <div class="card">
+        <div style="display:flex;gap:12px;align-items:start;">
+          <canvas id="r1bloom" width="100" height="140" style="image-rendering:pixelated;width:90px;height:126px;"></canvas>
+          <div style="flex:1;padding-top:4px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <canvas id="av3" width="36" height="36" style="image-rendering:pixelated;width:36px;height:36px;border:1px solid var(--border)"></canvas>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;">深圳</span>
+              <span class="tag" style="font-size:9px;padding:1px 4px;">TA发起</span>
+            </div>
+            <div><span class="tag" style="font-size:10px;">温柔体贴</span><span class="tag" style="font-size:10px;">善于倾听</span></div>
+          </div>
+        </div>
+        <div style="padding:0 4px;margin-top:8px;">
+          <div class="rp"><div class="rd cur"></div><div class="rl"></div><div class="rd"></div><div class="rl"></div><div class="rd"></div></div>
+          <div class="rlb"><span>初见</span><span>深聊</span><span>见见我的圈子</span></div>
+        </div>
+        <div class="pbar"><div class="pfill" style="width:60%"></div></div>
+        <div style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">3/5</div>
+        <div style="margin-top:8px;border:1px solid var(--border);padding:10px;">
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:6px;">选择见面方式</p>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-s btn-sm" style="flex:1">视频通话</button>
+            <button class="btn btn-s btn-sm" style="flex:1;border-color:var(--accent);color:var(--accent)">线下见面</button>
+            <button class="btn btn-s btn-sm" style="flex:1">都可以</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Round 3 / Offer -->
+    <div class="frame" data-p="Pipeline R3 + Offer">
+      <div class="card">
+        <div style="display:flex;gap:12px;align-items:start;">
+          <canvas id="r3bloom" width="100" height="140" style="image-rendering:pixelated;width:90px;height:126px;"></canvas>
+          <div style="flex:1;padding-top:4px;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <div style="width:36px;height:36px;background:linear-gradient(135deg,#E8C4A0,#D4A080);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:14px;">📷</div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;">上海</span>
+            </div>
+            <div><span class="tag" style="font-size:10px;">温柔体贴</span><span class="tag" style="font-size:10px;">热爱旅行</span></div>
+          </div>
+        </div>
+        <div style="padding:0 4px;margin-top:8px;">
+          <div class="rp"><div class="rd done">✓</div><div class="rl done"></div><div class="rd done">✓</div><div class="rl done"></div><div class="rd done">✓</div></div>
+          <div class="rlb"><span>初见 ✓</span><span>深聊 ✓</span><span>见见我的圈子 ✓</span></div>
+        </div>
+        <div style="text-align:center;margin-top:12px;">
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--accent);margin-bottom:4px;">三轮都走完了</p>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">准备好认真了吗？</p>
+          <button class="btn btn-p" style="width:100%;">我想认真了 →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session -->
+    <div class="frame" data-p="Session (对话)">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+        <div>
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;">初见</p>
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);">第1轮 · 视频 · AI精选5题</p>
+        </div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:20px;color:var(--text2);">37:24</span>
+      </div>
+      <div class="pbar"><div class="pfill" style="width:40%"></div></div>
+      <div style="text-align:center;margin:16px 0;">
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);">Q2 · 2/5</p>
+        <p style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent);cursor:pointer;margin-top:4px;">换一题 (2)</p>
+      </div>
+      <div class="card">
+        <p style="font-size:17px;line-height:1.7;">对你来说，一个完美的一天是什么样的？</p>
+      </div>
+      <p style="font-size:12px;color:var(--faint);margin:8px 0;cursor:pointer;">▸ 记录你的想法（仅自己可见）</p>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-s" style="padding:10px 16px;">跳过</button>
+        <button class="btn btn-p" style="flex:1;">下一题 →</button>
+      </div>
+    </div>
+
+    <!-- Rating -->
+    <div class="frame" data-p="Rating Modal">
+      <div style="background:rgba(29,27,27,0.5);padding:32px 12px;margin:-16px;">
+        <div style="background:var(--card);border:1px solid var(--border);padding:20px;text-align:center;">
+          <canvas id="ratingBloom" width="80" height="112" style="image-rendering:pixelated;width:70px;height:98px;margin-bottom:8px;"></canvas>
+          <p style="font-family:'IBM Plex Mono',monospace;color:var(--accent);font-size:14px;">今天聊得怎么样？</p>
+          <p style="font-size:11px;color:var(--faint);margin-top:4px;">你的评分对方不会看到</p>
+          <div class="stars"><div class="star sel">1</div><div class="star sel">2</div><div class="star sel">3</div><div class="star sel">★</div><div class="star">5</div></div>
+          <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text2);margin:8px 0;">想继续了解TA吗？</p>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-s" style="flex:1;padding:10px">暂时到这里</button>
+            <button class="btn btn-p" style="flex:1;padding:10px">继续深聊 →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <div class="tab active">发现</div>
+  <div class="tab">收到<span class="badge">2</span></div>
+  <div class="tab">管道</div>
+</div>
+
+<script>
+function tog(el) { const c=el.nextElementSibling,a=el.querySelector('span:last-child'); const h=c.classList.toggle('hide'); a.textContent=h?'▶':'▼'; }
+
+// --- Accent color switcher ---
+function setAccent(main, hover, light, el) {
+  document.documentElement.style.setProperty('--accent', main);
+  document.documentElement.style.setProperty('--accent-hover', hover);
+  document.documentElement.style.setProperty('--accent-light', light);
+  document.querySelectorAll('.accent-opt').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('currentAccent').textContent = main;
+}
+
+// --- RNG ---
+function rng(seed) { let s=seed|0; return()=>{s=(Math.imul(s,1664525)+1013904223)|0;return(s>>>0)/0xFFFFFFFF;}; }
+function hex2rgb(h) { return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+
+// --- SPECIES v2: 15 species, LARGER canvas (32x44), distinct silhouettes ---
+const SP = {
+  // Romantic flowers
+  sakura:   { g:'#8B6B4A',s:'#6B5038',l:['#4A7C59','#6B9E5E'],f:['#E8A0B0','#D4869A','#F0C0D0'],lt:'#F0C0D0',zh:'樱花',type:'spread_tree' },
+  rose:     { g:'#6B5038',s:'#3D6B48',l:['#4A7C59','#6B9E5E'],f:['#C45060','#D07080','#E0A0A8'],lt:'#E0A0A8',zh:'玫瑰',type:'bush' },
+  wisteria: { g:'#8B6B4A',s:'#6B5038',l:['#4A7C59','#6B9E5E'],f:['#9B7BC0','#B090D0','#7A5AA0'],lt:'#C4B0E0',zh:'紫藤',type:'hanging_vine' },
+  peony:    { g:'#8B6B4A',s:'#4A7C59',l:['#6B9E5E','#4A7C59'],f:['#D4869A','#E8A0B0'],lt:'#F0C0D0',zh:'牡丹',type:'wide_bloom' },
+  lotus:    { g:'#5A8AAE',s:'#4A7C59',l:['#2D8B4E','#4AAF6E'],f:['#F0C0D0','#E8A0B0'],lt:'#F0EDE8',zh:'莲花',type:'water' },
+  // Woody / fruit trees
+  peach:    { g:'#8B6B4A',s:'#6B5038',l:['#4A7C59','#6B9E5E'],f:['#E8A0B0','#FF9090','#D4869A'],lt:'#FFD0D0',zh:'桃树',type:'fruit_tree' },
+  plum:     { g:'#8B6B4A',s:'#5A4030',l:['#4A7C59','#3D6B48'],f:['#D07080','#E8A0B0','#C06070'],lt:'#F0D0D8',zh:'梅花',type:'bare_branch' },
+  ginkgo:   { g:'#8B6B4A',s:'#6B5038',l:['#D4A040','#E4B858','#C49030'],f:['#D4A040','#E4B858'],lt:'#FFFBE0',zh:'银杏',type:'fan_tree' },
+  // Warm nature
+  oak:      { g:'#8B6B4A',s:'#6B5038',l:['#4A7C59','#6B9E5E','#3D6B48'],f:['#C4956A','#A08050'],lt:'#FFF4E0',zh:'橡树',type:'wide_canopy' },
+  sunflower:{ g:'#8B6B4A',s:'#4A7C59',l:['#6B9E5E','#4A7C59'],f:['#D4A040','#E4B858','#C49030'],lt:'#FFFBE0',zh:'向日葵',type:'tall_single' },
+  // Elegant
+  lavender: { g:'#A0845C',s:'#4A7C59',l:['#6B9E5E','#4A7C59'],f:['#8B7BB0','#A090C8','#C4B0E0'],lt:'#C4B0E0',zh:'薰衣草',type:'multi_stem' },
+  dandelion:{ g:'#8B6B4A',s:'#6B9E5E',l:['#4A7C59','#6B9E5E'],f:['#D4A040','#F0EDE8'],lt:'#F0EDE8',zh:'蒲公英',type:'puff' },
+  // Tropical
+  bougainvillea:{ g:'#8B6B4A',s:'#3D6B48',l:['#2D8B4E','#4AAF6E'],f:['#C45060','#D4915A','#E8A0B0'],lt:'#D4915A',zh:'三角梅',type:'climbing' },
+  plumeria: { g:'#A0845C',s:'#6B5038',l:['#2D8B4E','#4AAF6E'],f:['#F0EDE8','#E8D5C0'],lt:'#E8D5C0',zh:'鸡蛋花',type:'tropical_tree' },
+  glow_mushroom:{ g:'#3D6B48',s:'#4A7C59',l:['#6B9E5E','#4A7C59'],f:['#7AAECE','#5A8AAE'],lt:'#F0EDE8',zh:'发光蘑菇',type:'mushroom' },
+};
+
+const GW=32, GH=44;
+
+function drawBloom(canvas, id, stage, seed) {
+  const sp=SP[id]||SP.oak;
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width,h=canvas.height;
+  const px=w/GW;
+  const R=rng(seed);
+  const dp=(x,y,c,a=1)=>{ if(x<0||x>=GW||y<0||y>=GH)return; const[r,g,b]=hex2rgb(c); ctx.fillStyle=`rgba(${r},${g},${b},${a})`; ctx.fillRect(Math.round(x*px),Math.round(y*px),Math.ceil(px),Math.ceil(px)); };
+
+  // Sky (use real time)
+  const hr=new Date().getHours();
+  ctx.fillStyle = hr>=7&&hr<17?'#87AECF':hr>=5&&hr<7?'#7A6A5A':hr>=17&&hr<19?'#6A6A8A':'#2B3A67';
+  ctx.fillRect(0,0,w,h);
+
+  // Stars
+  const sR=rng(seed+100);
+  for(let i=0;i<8+stage*2;i++) dp(Math.floor(sR()*GW),Math.floor(sR()*(GH-10)),'#F0EDE8',0.08+sR()*0.18);
+
+  // Ground
+  const gR=rng(seed+200);
+  const isWater = sp.type==='water';
+  for(let y=GH-4;y<GH;y++) for(let x=0;x<GW;x++)
+    if(gR()<0.9) dp(x,y,isWater?['#5A8AAE','#4A7A9E','#7AAECE'][Math.floor(gR()*3)]:['#8B6B4A','#6B5038','#A0845C'][Math.floor(gR()*3)]);
+
+  if(stage<0) return;
+  const cx=Math.floor(GW/2), gY=GH-5;
+  const sRng=rng(seed+300), lRng=rng(seed+400), fRng=rng(seed+500);
+
+  // Seed (stage 0)
+  dp(cx,gY,'#5A4A3A'); dp(cx,gY-1,sp.f[0],0.3);
+  if(stage===0) return;
+
+  // Draw based on species type
+  const t = sp.type;
+  const stemH = [0,6,12,18,22][Math.min(stage,4)];
+  const pts=[];
+
+  if(t==='wide_canopy'||t==='spread_tree'||t==='fan_tree'||t==='fruit_tree'||t==='tropical_tree') {
+    // TREE: thick trunk + wide canopy
+    const trunkW = stage>=3?2:1;
+    let sx=cx;
+    for(let i=0;i<stemH;i++){
+      for(let tw=0;tw<trunkW;tw++) dp(sx+tw,gY-i,sp.s);
+      pts.push({x:sx,y:gY-i});
+      if(i>3&&i%4===0&&sRng()>0.5){sx+=sRng()>0.5?1:-1;sx=Math.max(cx-2,Math.min(cx+2,sx));}
+    }
+    // Canopy (wide ellipse)
+    if(stage>=2&&pts.length>2){
+      const top=pts[pts.length-1];
+      const cw=t==='wide_canopy'?[0,0,5,7,9][stage]:t==='fan_tree'?[0,0,4,6,8][stage]:[0,0,4,6,7][stage];
+      const ch=t==='fan_tree'?[0,0,3,4,5][stage]:[0,0,3,5,6][stage];
+      for(let dy=-ch;dy<=1;dy++) for(let dx=-cw;dx<=cw;dx++){
+        const dist=Math.abs(dx)/(cw||1)+Math.abs(dy)/(ch||1);
+        if(dist<1.1&&lRng()>0.15){
+          const lc=sp.l[Math.floor(lRng()*sp.l.length)];
+          dp(top.x+dx,top.y+dy,lc,0.6+lRng()*0.4);
+        }
+      }
+    }
+    // Fruit/flowers on canopy
+    if(stage>=3&&pts.length>2){
+      const top=pts[pts.length-1];
+      const fc=stage>=3?[0,0,0,3,6][stage]:0;
+      for(let i=0;i<fc;i++){
+        const fx=top.x+Math.floor((fRng()-0.5)*10);
+        const fy=top.y+Math.floor((fRng()-0.5)*6);
+        const c=sp.f[Math.floor(fRng()*sp.f.length)];
+        dp(fx,fy,c); dp(fx+1,fy,c,0.7);
+        if(t==='fruit_tree'&&stage>=4){ dp(fx,fy+1,c,0.8); dp(fx+1,fy+1,c,0.6); } // bigger fruit
+      }
+    }
+  } else if(t==='bare_branch') {
+    // PLUM: bare branches then flowers directly on branches
+    let sx=cx;
+    for(let i=0;i<stemH;i++){dp(sx,gY-i,sp.s);pts.push({x:sx,y:gY-i});if(i>2&&i%3===0)sx+=sRng()>0.5?1:-1;}
+    // Branches
+    if(stage>=2) {
+      const bCount=[0,0,3,5,6][stage];
+      for(let b=0;b<bCount;b++){
+        const bi=3+Math.floor(sRng()*Math.max(1,pts.length-4));
+        const pt=pts[Math.min(bi,pts.length-1)];if(!pt)continue;
+        const dir=sRng()>0.5?1:-1;
+        for(let j=1;j<=2+Math.floor(sRng()*3);j++) dp(pt.x+dir*j,pt.y-j,sp.s,0.8);
+      }
+    }
+    // Flowers on bare wood (no leaves for plum!)
+    if(stage>=2){
+      const fc=[0,0,4,8,14][stage];
+      for(let i=0;i<fc;i++){
+        const bi=Math.floor(fRng()*pts.length);
+        const pt=pts[bi];if(!pt)continue;
+        const dx=Math.round((fRng()-0.5)*6);
+        const dy=Math.round((fRng()-0.5)*3);
+        dp(pt.x+dx,pt.y+dy,sp.f[Math.floor(fRng()*sp.f.length)]);
+      }
+    }
+  } else if(t==='bush'||t==='wide_bloom') {
+    // Bush: short, wide
+    for(let i=0;i<Math.min(stemH,8);i++){dp(cx,gY-i,sp.s);pts.push({x:cx,y:gY-i});}
+    if(stage>=1){
+      const bw=[0,3,5,7,8][stage], bh=[0,2,3,4,5][stage];
+      const base=pts[Math.min(2,pts.length-1)]||{x:cx,y:gY-2};
+      for(let dy=-bh;dy<=0;dy++) for(let dx=-bw;dx<=bw;dx++){
+        if((dx*dx)/(bw*bw||1)+(dy*dy)/(bh*bh||1)<1&&lRng()>0.2)
+          dp(base.x+dx,base.y+dy,sp.l[Math.floor(lRng()*sp.l.length)],0.6+lRng()*0.4);
+      }
+    }
+    if(stage>=2){
+      const fc=[0,0,3,6,10][stage];
+      for(let i=0;i<fc;i++){
+        const fx=cx+Math.round((fRng()-0.5)*12);
+        const fy=gY-2-Math.floor(fRng()*6);
+        dp(fx,fy,sp.f[Math.floor(fRng()*sp.f.length)]);
+        if(stage>=3){dp(fx+1,fy,sp.f[0],0.7);dp(fx,fy-1,sp.f[0],0.6);}
+      }
+    }
+  } else if(t==='hanging_vine') {
+    // Wisteria: grows UP then flowers HANG DOWN
+    for(let i=0;i<stemH;i++){dp(cx,gY-i,sp.s);pts.push({x:cx,y:gY-i});if(i>3&&i%3===0)cx+(sRng()>0.5?1:-1);}
+    if(stage>=1){const top=pts[pts.length-1]||{x:cx,y:gY};for(let dx=-3;dx<=3;dx++)if(lRng()>0.3)dp(top.x+dx,top.y,sp.l[0]);}
+    // Hanging flower chains!
+    if(stage>=2){
+      const chains=[0,0,3,5,7][stage];
+      for(let c=0;c<chains;c++){
+        const hx=cx+Math.round((fRng()-0.5)*8);
+        const hy=pts.length>3?pts[pts.length-2].y:gY-4;
+        const len=2+Math.floor(fRng()*4);
+        for(let j=0;j<len;j++) dp(hx,hy+j,sp.f[Math.floor(fRng()*sp.f.length)],0.7+fRng()*0.3);
+      }
+    }
+  } else if(t==='tall_single') {
+    // Sunflower: one tall stem, big head
+    for(let i=0;i<stemH;i++){dp(cx,gY-i,sp.s);pts.push({x:cx,y:gY-i});}
+    if(stage>=1) for(let i=0;i<stage;i++){const y=gY-3-i*3;dp(cx+(i%2?-1:1)*2,y,sp.l[0]);dp(cx+(i%2?-1:1)*3,y,sp.l[0],0.6);}
+    if(stage>=3&&pts.length>0){
+      const top=pts[pts.length-1];
+      // Big circular head
+      for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){
+        if(dx*dx+dy*dy<=5) dp(top.x+dx,top.y+dy-1,sp.f[Math.floor(fRng()*sp.f.length)]);
+      }
+      dp(top.x,top.y-1,'#5A4A3A'); // center
+    }
+  } else if(t==='multi_stem') {
+    // Lavender: 3 parallel stems with flower spikes
+    for(let s2=-1;s2<=1;s2++){
+      const sx2=cx+s2*3;
+      for(let i=0;i<stemH*0.7;i++){dp(sx2,gY-i,sp.s);if(s2===0)pts.push({x:sx2,y:gY-i});}
+      if(stage>=2){for(let j=0;j<stage*2;j++) dp(sx2,gY-Math.floor(stemH*0.7)-j,sp.f[Math.floor(fRng()*sp.f.length)],0.6+fRng()*0.3);}
+    }
+  } else if(t==='puff') {
+    // Dandelion: stem + puff ball that disperses
+    for(let i=0;i<stemH;i++){dp(cx,gY-i,sp.s);pts.push({x:cx,y:gY-i});}
+    if(stage>=2&&stage<4&&pts.length>0){
+      const top=pts[pts.length-1];
+      for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++)
+        if(dx*dx+dy*dy<=5&&fRng()>0.2) dp(top.x+dx,top.y+dy-1,stage>=3?'#F0EDE8':sp.f[0],0.5+fRng()*0.4);
+    }
+    if(stage>=4){
+      // Seeds dispersing!
+      const top=pts[pts.length-1]||{x:cx,y:gY-stemH};
+      for(let i=0;i<10;i++){
+        const sx2=top.x+Math.round((fRng()-0.5)*14);
+        const sy=top.y-2-Math.floor(fRng()*10);
+        dp(sx2,sy,'#F0EDE8',0.2+fRng()*0.3);
+        dp(sx2,sy+1,'#F0EDE8',0.1);
+      }
+    }
+  } else if(t==='water') {
+    // Lotus: pad on water then bloom rises
+    // Water surface highlight
+    for(let x=cx-4;x<=cx+4;x++) dp(x,gY,'#7AAECE',0.4);
+    // Pad
+    if(stage>=1){for(let dx=-2;dx<=2;dx++)dp(cx+dx,gY,sp.l[0],0.8);}
+    // Rising stem + bloom
+    if(stage>=2){for(let i=1;i<stemH*0.5;i++){dp(cx,gY-i,sp.s);pts.push({x:cx,y:gY-i});}}
+    if(stage>=3&&pts.length>0){
+      const top=pts[pts.length-1]||{x:cx,y:gY-4};
+      for(let dy=-2;dy<=1;dy++) for(let dx=-2;dx<=2;dx++)
+        if(Math.abs(dx)+Math.abs(dy)<=3&&fRng()>0.2) dp(top.x+dx,top.y+dy,sp.f[Math.floor(fRng()*sp.f.length)],0.6+fRng()*0.3);
+    }
+  } else if(t==='climbing') {
+    // Bougainvillea: zigzag climb with bursts of color
+    let sx2=cx-3;
+    for(let i=0;i<stemH;i++){dp(sx2,gY-i,sp.s);pts.push({x:sx2,y:gY-i});if(i%3===0)sx2+=sRng()>0.5?2:-1;}
+    if(stage>=2){
+      const fc=[0,0,4,8,14][stage];
+      for(let i=0;i<fc;i++){
+        const pi=Math.floor(fRng()*pts.length);const pt=pts[pi];if(!pt)continue;
+        const c=sp.f[Math.floor(fRng()*sp.f.length)];
+        dp(pt.x+Math.round((fRng()-0.5)*4),pt.y-Math.floor(fRng()*2),c,0.7+fRng()*0.3);
+      }
+    }
+  } else if(t==='mushroom') {
+    // Mushroom: short stems + caps with glow
+    const caps = [0,1,2,3,5][Math.min(stage,4)];
+    for(let c=0;c<caps;c++){
+      const mx=cx-4+Math.floor(fRng()*8);
+      const mh=2+Math.floor(fRng()*3);
+      for(let i=0;i<mh;i++) dp(mx,gY-i,sp.s);
+      // Cap
+      const cw=1+Math.floor(fRng()*2);
+      for(let dx=-cw;dx<=cw;dx++){dp(mx+dx,gY-mh,sp.f[0]);dp(mx+dx,gY-mh-1,sp.f[1]||sp.f[0],0.7);}
+      // Glow
+      if(stage>=3) for(let dy=-2;dy<=1;dy++) for(let dx=-cw-1;dx<=cw+1;dx++)
+        if(fRng()>0.5) dp(mx+dx,gY-mh+dy,sp.lt,0.08+fRng()*0.1);
+    }
+  }
+
+  // Stage 4: glow halo
+  if(stage>=4){
+    const gR2=rng(seed+600);
+    for(let i=0;i<12;i++) dp(Math.floor(gR2()*GW),Math.floor(gR2()*(GH-8)),sp.lt,0.08+gR2()*0.12);
+  }
+}
+
+// --- Avatar ---
+function drawAvatar(c, seed) {
+  const ctx=c.getContext('2d'); const r=rng(seed);
+  const pals=[['#D4654A','#F0D5CC','#8B6B4A'],['#D4869A','#F0C0D0','#8B6B4A'],['#4A7C59','#6B9E5E','#8B6B4A'],['#D4A040','#FFFBE0','#8B6B4A']];
+  const p=pals[seed%4]; const px=c.width/8;
+  ctx.fillStyle='#EDE9E3'; ctx.fillRect(0,0,c.width,c.height);
+  for(let y=0;y<8;y++) for(let x=0;x<4;x++) if(r()>0.5){ctx.fillStyle=p[Math.floor(r()*3)];ctx.fillRect(x*px,y*px,px,px);ctx.fillRect((7-x)*px,y*px,px,px);}
+}
+
+// --- Login hero ---
+function drawLoginHero(c) {
+  const ctx=c.getContext('2d'),w=c.width,h=c.height,cx2=w/2,cy=h/2,rad=w*0.42;
+  ctx.fillStyle='#F3F1ED';ctx.fillRect(0,0,w,h);
+  ctx.beginPath();ctx.arc(cx2,cy,rad,0,Math.PI*2);
+  const hr=new Date().getHours();
+  ctx.fillStyle=hr>=7&&hr<17?'#87AECF':'#2B3A67';ctx.fill();
+  const grad=ctx.createRadialGradient(cx2,cy,rad*0.7,cx2,cy,rad);
+  grad.addColorStop(0,'transparent');grad.addColorStop(1,'rgba(43,58,103,0.3)');
+  ctx.fillStyle=grad;ctx.fill();
+  const px=3.5;
+  const dp2=(x,y,col,a=1)=>{const[r,g,b]=hex2rgb(col);ctx.fillStyle=`rgba(${r},${g},${b},${a})`;ctx.fillRect(cx2-35+x*px,cy-25+y*px,px,px);};
+  const sr=rng(42);
+  for(let i=0;i<14;i++)dp2(Math.floor(sr()*20),Math.floor(sr()*8),'#F0EDE8',0.12+sr()*0.2);
+  for(let x=0;x<20;x++){dp2(x,14,'#8B6B4A');dp2(x,15,'#6B5038');}
+  for(let y=6;y<14;y++){dp2(10,y,'#6B5038');dp2(11,y,'#6B5038');}
+  const lc=['#4A7C59','#6B9E5E','#3D6B48'];
+  for(let dy=-4;dy<=2;dy++)for(let dx=-5;dx<=5;dx++)if(Math.abs(dx)+Math.abs(dy)<=6&&sr()>0.15)dp2(10+dx,4+dy,lc[Math.floor(sr()*3)],0.6+sr()*0.3);
+  // sakura petals on tree
+  for(let i=0;i<6;i++)dp2(10+Math.round((sr()-0.5)*8),4+Math.round((sr()-0.5)*4),'#E8A0B0',0.5+sr()*0.3);
+  dp2(6,13,'#E8C4A0');dp2(7,13,'#E8C4A0');dp2(6,12,'#C46B4A');dp2(7,12,'#C46B4A');
+}
+
+// --- Init ---
+window.addEventListener('DOMContentLoaded', () => {
+  // Species grid
+  const grid=document.getElementById('speciesGrid');
+  Object.entries(SP).forEach(([id,sp],i) => {
+    const item=document.createElement('div');item.className='sp-item';
+    const c=document.createElement('canvas');c.width=128;c.height=176;
+    c.style.cssText='image-rendering:pixelated;width:105px;height:144px;';
+    c.dataset.stage='3';c.title=sp.zh;
+    c.onclick=()=>{let st=parseInt(c.dataset.stage);st=(st+1)%5;c.dataset.stage=st;drawBloom(c,id,st,i*1000+42);lb.textContent=`${sp.zh} S${st}`;};
+    drawBloom(c,id,3,i*1000+42);
+    const lb=document.createElement('div');lb.className='nm';lb.textContent=sp.zh;
+    item.appendChild(c);item.appendChild(lb);grid.appendChild(item);
+  });
+
+  drawAvatar(document.getElementById('av1'),12345);
+  drawAvatar(document.getElementById('av3'),99999);
+  drawAvatar(document.getElementById('revealAvatar'),55555);
+  drawAvatar(document.getElementById('revealAvatar2'),55555);
+  drawBloom(document.getElementById('r1bloom'),'sakura',1,55555);
+  drawBloom(document.getElementById('r2bloom'),'sakura',2,55555);
+  drawBloom(document.getElementById('r3bloom'),'oak',4,77777);
+  drawBloom(document.getElementById('ratingBloom'),'peach',3,33333);
+  drawLoginHero(document.getElementById('loginHero'));
+});
+</script>
+</body>
+</html>

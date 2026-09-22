@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resonance Demo 1 — Enhanced Ghibli Pixel Art</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E8E4DE;
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh; padding: 20px 0;
+    font-family: 'Courier New', monospace;
+  }
+  .phone {
+    width: 390px; background: #F3F1ED;
+    border: 1px solid #C5C1BB;
+    padding: 24px 20px 32px;
+    position: relative;
+  }
+  .header { text-align: center; margin-bottom: 16px; }
+  .header h1 { font-size: 17px; color: #1D1B1B; font-weight: 500; letter-spacing: 3px; }
+  .header p { font-size: 14px; color: #4F4D4A; font-family: sans-serif; margin-top: 4px; }
+  .scene-container {
+    width: 350px; height: 300px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB; background: #2B3A67;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+  .scene-container canvas { display: block; image-rendering: pixelated; }
+  .section-divider {
+    font-size: 11px; color: #6B6966; letter-spacing: 2px;
+    text-transform: uppercase; margin: 20px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-divider::after {
+    content: ''; flex: 1; height: 1px; background: #C5C1BB;
+  }
+  .bloom-container {
+    width: 160px; height: 160px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB; background: #87AECF;
+    image-rendering: pixelated;
+  }
+  .bloom-container canvas { display: block; image-rendering: pixelated; }
+  .card {
+    background: #FBF9F6; border: 1px solid #C5C1BB; padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avatar { width: 48px; height: 48px; background: #EDE9E3; image-rendering: pixelated; }
+  .avatar canvas { display: block; image-rendering: pixelated; }
+  .card-info { font-size: 14px; color: #1D1B1B; }
+  .card-info small { color: #6B6966; font-size: 12px; }
+  .score-bar {
+    height: 8px; background: #DDD9D3; margin: 10px 0;
+    position: relative;
+  }
+  .score-fill { height: 100%; background: #C4956A; width: 85%; }
+  .score-label { font-size: 12px; color: #C4956A; position: absolute; right: 0; top: -16px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .tag {
+    background: #EDE9E3; color: #4F4D4A; font-size: 12px;
+    padding: 3px 8px; font-family: sans-serif;
+  }
+  .highlights { font-size: 13px; color: #4F4D4A; font-family: sans-serif; line-height: 1.8; }
+  .highlights span { color: #C4956A; margin-right: 4px; }
+  .btn {
+    display: block; width: 100%; padding: 12px;
+    background: #C4956A; color: #FBF9F6; border: none;
+    font-size: 14px; font-family: 'Courier New', monospace;
+    cursor: pointer; text-align: center; margin-top: 12px;
+  }
+  .btn:hover { background: #B5845B; }
+  .btn:active { transform: translateY(1px); }
+  .label {
+    text-align: center; margin-top: 20px; padding: 12px;
+    font-size: 13px; color: #6B6966; border-top: 1px solid #C5C1BB;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <h1>RESONANCE</h1>
+    <p>找到同频的人</p>
+  </div>
+
+  <div class="scene-container">
+    <canvas id="mainScene" width="350" height="300"></canvas>
+  </div>
+
+  <div class="section-divider">RelationshipBloom · 樱花</div>
+
+  <div class="bloom-container">
+    <canvas id="bloomScene" width="160" height="160"></canvas>
+  </div>
+
+  <div class="section-divider">候选人</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="avatar"><canvas id="avatarCanvas" width="48" height="48"></canvas></div>
+      <div class="card-info">上海 · 25岁<br><small>♀</small></div>
+    </div>
+    <div class="score-bar">
+      <div class="score-label">85</div>
+      <div class="score-fill"></div>
+    </div>
+    <div class="tags">
+      <span class="tag">温柔体贴</span>
+      <span class="tag">爱好运动</span>
+      <span class="tag">善于倾听</span>
+    </div>
+    <div class="highlights">
+      <span>·</span>你们都喜欢旅行<br>
+      <span>·</span>对生活节奏想法相似<br>
+      <span>·</span>价值观接近
+    </div>
+    <button class="btn">联系TA</button>
+  </div>
+
+  <div class="label">方案一：增强像素画 (Canvas Pixel Art)</div>
+</div>
+
+<script>
+// ===== MAIN SCENE =====
+const mainCanvas = document.getElementById('mainScene');
+const ctx = mainCanvas.getContext('2d');
+const W = 350, H = 300;
+const PX = 5; // pixel size
+const GW = W / PX, GH = H / PX; // 70x60 grid
+
+// Color palette
+const C = {
+  sky1: '#2B3A67', sky2: '#1E2A4A',
+  star: '#F0EDE8',
+  glow1: 'rgba(196,149,106,0.25)', glow2: 'rgba(196,149,106,0)',
+  trunk1: '#6B5038', trunk2: '#8B6B4A', trunk3: '#5A4030',
+  branch: '#7A5C42',
+  leaf1: '#4A7C59', leaf2: '#3D6B48', leaf3: '#6B9E5E',
+  flower1: '#E8A0B0', flower2: '#D4869A', flower3: '#F0C0D0', flower4: '#C47888',
+  ground1: '#8B6B4A', ground2: '#6B5038', ground3: '#A0845C',
+  grass1: '#4A7C59', grass2: '#3D6B48',
+  char1hair: '#C46B4A', char2hair: '#5A4A3A',
+  skin: '#E8C4A0', shirt1: '#87AECF', shirt2: '#C45060',
+};
+
+// Pixel drawing helper
+function px(x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x * PX, y * PX, PX, PX);
+}
+
+// Particles
+let particles = [];
+let fireflies = [];
+let stars = [];
+
+function initStars() {
+  for (let i = 0; i < 40; i++) {
+    stars.push({
+      x: Math.floor(Math.random() * GW),
+      y: Math.floor(Math.random() * (GH * 0.6)),
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.5 + Math.random() * 1.5,
+      brightness: 0.3 + Math.random() * 0.5,
+    });
+  }
+}
+
+function initFireflies() {
+  for (let i = 0; i < 5; i++) {
+    fireflies.push({
+      x: 20 + Math.random() * 30,
+      y: 20 + Math.random() * 25,
+      vx: (Math.random() - 0.5) * 0.02,
+      vy: (Math.random() - 0.5) * 0.02,
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function spawnPetal() {
+  if (particles.length < 12) {
+    particles.push({
+      x: 25 + Math.random() * 20,
+      y: 10 + Math.random() * 10,
+      vx: (Math.random() - 0.5) * 0.03,
+      vy: 0.02 + Math.random() * 0.03,
+      life: 1,
+      color: [C.flower1, C.flower2, C.flower3][Math.floor(Math.random() * 3)],
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function drawSky(t) {
+  // Base sky
+  for (let y = 0; y < GH; y++) {
+    const ratio = y / GH;
+    const r = Math.floor(43 + ratio * (30 - 43));
+    const g = Math.floor(58 + ratio * (42 - 58));
+    const b = Math.floor(103 + ratio * (74 - 103));
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(0, y * PX, W, PX);
+  }
+}
+
+function drawGlow() {
+  // Circular warm glow behind tree
+  const gradient = ctx.createRadialGradient(35 * PX, 30 * PX, 5 * PX, 35 * PX, 30 * PX, 25 * PX);
+  gradient.addColorStop(0, 'rgba(196,149,106,0.3)');
+  gradient.addColorStop(0.5, 'rgba(196,149,106,0.12)');
+  gradient.addColorStop(1, 'rgba(196,149,106,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawStars(t) {
+  for (const s of stars) {
+    const alpha = s.brightness * (0.4 + 0.6 * Math.sin(t * s.speed + s.phase));
+    if (alpha > 0.15) {
+      ctx.fillStyle = `rgba(240,237,232,${alpha})`;
+      ctx.fillRect(s.x * PX, s.y * PX, PX, PX);
+    }
+  }
+}
+
+function drawGround() {
+  // Main ground
+  for (let x = 0; x < GW; x++) {
+    const groundY = 50 + Math.floor(Math.sin(x * 0.15) * 1.5);
+    for (let y = groundY; y < GH; y++) {
+      const depth = y - groundY;
+      if (depth === 0) px(x, y, C.grass1);
+      else if (depth === 1 && Math.random() > 0.5) px(x, y, C.grass2);
+      else if (depth < 3) px(x, y, C.ground3);
+      else px(x, y, Math.random() > 0.3 ? C.ground1 : C.ground2);
+    }
+  }
+  // Grass tufts
+  for (let x = 2; x < GW - 2; x += 3 + Math.floor(Math.random() * 3)) {
+    const gy = 49 + Math.floor(Math.sin(x * 0.15) * 1.5);
+    px(x, gy, C.grass1);
+    if (Math.random() > 0.5) px(x + 1, gy, C.grass2);
+  }
+}
+
+function drawTree() {
+  // Trunk — thick, organic
+  const trunkBase = 51;
+  const trunkTop = 28;
+  for (let y = trunkTop; y <= trunkBase; y++) {
+    const progress = (y - trunkTop) / (trunkBase - trunkTop);
+    const width = 1 + Math.floor(progress * 2.5);
+    const cx = 35;
+    for (let dx = -width; dx <= width; dx++) {
+      const shade = dx === -width || dx === width ? C.trunk3 : (dx === 0 ? C.trunk2 : C.trunk1);
+      px(cx + dx, y, shade);
+    }
+  }
+
+  // Roots
+  px(33, 51, C.trunk3); px(37, 51, C.trunk3);
+  px(32, 52, C.trunk3); px(38, 52, C.trunk3);
+
+  // Main branches
+  const branches = [
+    [[35,28],[33,26],[31,24],[29,22]],
+    [[35,28],[37,26],[39,24],[41,22]],
+    [[35,30],[32,28],[30,26],[28,25]],
+    [[35,30],[38,28],[40,26],[42,25]],
+    [[35,32],[31,30],[29,28]],
+    [[35,32],[39,30],[41,28]],
+    [[35,34],[33,32],[31,31]],
+    [[35,34],[37,32],[39,31]],
+  ];
+  for (const branch of branches) {
+    for (const [bx, by] of branch) {
+      px(bx, by, C.branch);
+    }
+  }
+
+  // Canopy — large, lush, multi-layered
+  const canopyPoints = [];
+  // Layer 1: large pink/green clusters
+  const clusters = [
+    [35, 18, 8], // center top
+    [29, 22, 6], // left
+    [41, 22, 6], // right
+    [33, 14, 6], // top left
+    [37, 14, 6], // top right
+    [35, 22, 7], // center
+    [27, 25, 5], // far left
+    [43, 25, 5], // far right
+    [31, 17, 5],
+    [39, 17, 5],
+    [35, 12, 5], // very top
+  ];
+
+  for (const [cx, cy, r] of clusters) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= r && Math.random() > 0.15) {
+          const x = cx + dx, y = cy + dy;
+          if (x >= 0 && x < GW && y >= 0 && y < GH && y < 50) {
+            canopyPoints.push([x, y, dist, r]);
+          }
+        }
+      }
+    }
+  }
+
+  // Draw canopy with color variation
+  const drawn = new Set();
+  for (const [x, y, dist, r] of canopyPoints) {
+    const key = `${x},${y}`;
+    if (drawn.has(key)) continue;
+    drawn.add(key);
+
+    const edgeFactor = dist / r;
+    const rand = Math.random();
+
+    let color;
+    if (rand < 0.25) color = C.flower1;
+    else if (rand < 0.45) color = C.flower2;
+    else if (rand < 0.6) color = C.flower3;
+    else if (rand < 0.7) color = C.flower4;
+    else if (rand < 0.85) color = C.leaf1;
+    else if (rand < 0.92) color = C.leaf2;
+    else color = C.leaf3;
+
+    // Edge pixels more likely to be flowers (pink)
+    if (edgeFactor > 0.7 && Math.random() > 0.4) {
+      color = [C.flower1, C.flower3][Math.floor(Math.random() * 2)];
+    }
+
+    px(x, y, color);
+  }
+}
+
+function drawCharacters() {
+  // Character 1 (left) — sitting
+  const c1x = 30, c1y = 47;
+  // Body
+  px(c1x, c1y, C.shirt1); px(c1x + 1, c1y, C.shirt1);
+  px(c1x, c1y + 1, C.shirt1); px(c1x + 1, c1y + 1, C.shirt1);
+  // Head
+  px(c1x, c1y - 1, C.skin); px(c1x + 1, c1y - 1, C.skin);
+  // Hair
+  px(c1x, c1y - 2, C.char1hair); px(c1x + 1, c1y - 2, C.char1hair);
+  px(c1x - 1, c1y - 1, C.char1hair);
+  // Legs
+  px(c1x, c1y + 2, C.trunk1); px(c1x + 1, c1y + 2, C.trunk1);
+
+  // Character 2 (right) — sitting
+  const c2x = 38, c2y = 47;
+  px(c2x, c2y, C.shirt2); px(c2x + 1, c2y, C.shirt2);
+  px(c2x, c2y + 1, C.shirt2); px(c2x + 1, c2y + 1, C.shirt2);
+  px(c2x, c2y - 1, C.skin); px(c2x + 1, c2y - 1, C.skin);
+  px(c2x, c2y - 2, C.char2hair); px(c2x + 1, c2y - 2, C.char2hair);
+  px(c2x + 2, c2y - 1, C.char2hair);
+  px(c2x, c2y + 2, C.trunk1); px(c2x + 1, c2y + 2, C.trunk1);
+}
+
+function drawFireflies(t) {
+  for (const f of fireflies) {
+    f.x += f.vx + Math.sin(t * 0.7 + f.phase) * 0.01;
+    f.y += f.vy + Math.cos(t * 0.5 + f.phase) * 0.01;
+    // Bounce
+    if (f.x < 15 || f.x > 55) f.vx *= -1;
+    if (f.y < 15 || f.y > 48) f.vy *= -1;
+
+    const alpha = 0.3 + 0.7 * Math.sin(t * 1.5 + f.phase);
+    // Glow
+    const gradient = ctx.createRadialGradient(
+      f.x * PX, f.y * PX, 0,
+      f.x * PX, f.y * PX, PX * 3
+    );
+    gradient.addColorStop(0, `rgba(240,237,232,${alpha * 0.6})`);
+    gradient.addColorStop(1, 'rgba(240,237,232,0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect((f.x - 3) * PX, (f.y - 3) * PX, PX * 6, PX * 6);
+    // Core
+    ctx.fillStyle = `rgba(240,237,232,${alpha})`;
+    ctx.fillRect(Math.floor(f.x) * PX, Math.floor(f.y) * PX, PX, PX);
+  }
+}
+
+function drawParticles(t) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx + Math.sin(t * 2 + p.phase) * 0.015;
+    p.y += p.vy;
+    p.life -= 0.003;
+    if (p.life <= 0 || p.y > GH) {
+      particles.splice(i, 1);
+      continue;
+    }
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.fillRect(Math.floor(p.x) * PX, Math.floor(p.y) * PX, PX, PX);
+    ctx.globalAlpha = 1;
+  }
+}
+
+initStars();
+initFireflies();
+
+// Static elements drawn once on offscreen canvas
+const staticCanvas = document.createElement('canvas');
+staticCanvas.width = W; staticCanvas.height = H;
+const sctx = staticCanvas.getContext('2d');
+
+function drawStaticScene() {
+  const origCtx = ctx;
+  ctx = sctx;
+  drawSky(0);
+  drawGlow();
+  drawGround();
+  drawTree();
+  drawCharacters();
+  ctx = origCtx;
+}
+drawStaticScene();
+
+let petalTimer = 0;
+function animateMain(time) {
+  const t = time / 1000;
+
+  // Draw static background
+  ctx.drawImage(staticCanvas, 0, 0);
+
+  // Dynamic elements
+  drawStars(t);
+  drawFireflies(t);
+
+  petalTimer++;
+  if (petalTimer % 40 === 0) spawnPetal();
+  drawParticles(t);
+
+  requestAnimationFrame(animateMain);
+}
+requestAnimationFrame(animateMain);
+
+// ===== BLOOM MINI SCENE =====
+const bloomCanvas = document.getElementById('bloomScene');
+const bctx = bloomCanvas.getContext('2d');
+const BW = 160, BH = 160;
+const BPX = 4;
+const BGW = BW / BPX, BGH = BH / BPX;
+
+function bpx(x, y, color) {
+  bctx.fillStyle = color;
+  bctx.fillRect(x * BPX, y * BPX, BPX, BPX);
+}
+
+let bloomParticles = [];
+function spawnBloomPetal() {
+  if (bloomParticles.length < 6) {
+    bloomParticles.push({
+      x: 15 + Math.random() * 10,
+      y: 6 + Math.random() * 5,
+      vx: (Math.random() - 0.5) * 0.03,
+      vy: 0.02 + Math.random() * 0.02,
+      life: 1,
+      color: [C.flower1, C.flower3][Math.floor(Math.random() * 2)],
+      phase: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function drawBloom(time) {
+  const t = time / 1000;
+  bctx.clearRect(0, 0, BW, BH);
+
+  // Sky gradient
+  for (let y = 0; y < BGH; y++) {
+    const ratio = y / BGH;
+    const r = Math.floor(135 - ratio * 20);
+    const g = Math.floor(174 - ratio * 20);
+    const b = Math.floor(207 - ratio * 20);
+    bctx.fillStyle = `rgb(${r},${g},${b})`;
+    bctx.fillRect(0, y * BPX, BW, BPX);
+  }
+
+  // Clouds
+  for (const cx of [8, 28]) {
+    bpx(cx, 3, '#F0EDE8'); bpx(cx + 1, 3, '#F0EDE8'); bpx(cx + 2, 3, '#F0EDE8');
+    bpx(cx + 1, 2, '#F0EDE8');
+  }
+
+  // Ground
+  for (let x = 0; x < BGW; x++) {
+    for (let y = 32; y < BGH; y++) {
+      bpx(x, y, y === 32 ? C.grass1 : C.ground1);
+    }
+  }
+
+  // Pot
+  for (let x = 17; x <= 23; x++) {
+    bpx(x, 31, '#A07050');
+    bpx(x, 30, '#A07050');
+  }
+  bpx(16, 31, '#8B6040'); bpx(24, 31, '#8B6040');
+
+  // Trunk
+  for (let y = 18; y <= 30; y++) {
+    bpx(20, y, C.trunk1);
+    if (y > 24) bpx(19, y, C.trunk3);
+    if (y > 26) bpx(21, y, C.trunk2);
+  }
+
+  // Branches
+  bpx(19, 20, C.branch); bpx(18, 19, C.branch);
+  bpx(21, 18, C.branch); bpx(22, 17, C.branch);
+  bpx(18, 22, C.branch); bpx(17, 21, C.branch);
+  bpx(22, 20, C.branch); bpx(23, 19, C.branch);
+
+  // Canopy clusters
+  const bClusters = [
+    [20, 12, 5], [17, 16, 4], [23, 16, 4],
+    [20, 8, 4], [15, 19, 3], [25, 19, 3],
+  ];
+  for (const [cx, cy, r] of bClusters) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.sqrt(dx*dx + dy*dy) <= r && Math.random() > 0.2) {
+          const x = cx + dx, y = cy + dy;
+          if (x >= 0 && x < BGW && y >= 0 && y < 30) {
+            const rand = Math.random();
+            const color = rand < 0.3 ? C.flower1 : rand < 0.5 ? C.flower2 : rand < 0.7 ? C.flower3 : rand < 0.85 ? C.leaf1 : C.leaf2;
+            bpx(x, y, color);
+          }
+        }
+      }
+    }
+  }
+
+  // Bloom particles
+  if (Math.random() < 0.03) spawnBloomPetal();
+  for (let i = bloomParticles.length - 1; i >= 0; i--) {
+    const p = bloomParticles[i];
+    p.x += p.vx + Math.sin(t * 2 + p.phase) * 0.01;
+    p.y += p.vy;
+    p.life -= 0.005;
+    if (p.life <= 0 || p.y > BGH) { bloomParticles.splice(i, 1); continue; }
+    bctx.globalAlpha = p.life;
+    bpx(Math.floor(p.x), Math.floor(p.y), p.color);
+    bctx.globalAlpha = 1;
+  }
+
+  requestAnimationFrame(drawBloom);
+}
+requestAnimationFrame(drawBloom);
+
+// ===== PIXEL AVATAR =====
+const avatarCanvas = document.getElementById('avatarCanvas');
+const actx = avatarCanvas.getContext('2d');
+const APX = 6;
+const avatarColors = ['#E8A0B0', '#C4956A', '#4A7C59', '#87AECF', '#E8C4A0', '#D4869A'];
+// Simple symmetric 8x8 pixel face
+const face = [
+  [0,0,1,1,1,1,0,0],
+  [0,1,2,2,2,2,1,0],
+  [1,2,2,2,2,2,2,1],
+  [1,2,3,2,2,3,2,1],
+  [1,2,2,2,2,2,2,1],
+  [1,2,2,4,4,2,2,1],
+  [0,1,2,2,2,2,1,0],
+  [0,0,1,1,1,1,0,0],
+];
+const faceColors = ['transparent', '#D4869A', '#E8C4A0', '#5A4A3A', '#C45060'];
+for (let y = 0; y < 8; y++) {
+  for (let x = 0; x < 8; x++) {
+    if (face[y][x]) {
+      actx.fillStyle = faceColors[face[y][x]];
+      actx.fillRect(x * APX, y * APX, APX, APX);
+    }
+  }
+}
+</script>
+</body>
+</html>

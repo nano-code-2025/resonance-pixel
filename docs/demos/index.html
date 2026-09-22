@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resonance 视觉方案对比</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #F3F1ED;
+    font-family: 'Courier New', monospace;
+    padding: 40px 20px;
+    color: #1D1B1B;
+  }
+  h1 { text-align: center; font-size: 20px; font-weight: 500; letter-spacing: 3px; margin-bottom: 8px; }
+  .subtitle { text-align: center; font-size: 14px; color: #6B6966; font-family: sans-serif; margin-bottom: 40px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .option {
+    background: #FBF9F6;
+    border: 1px solid #C5C1BB;
+    padding: 20px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .option:hover {
+    border-color: #C4956A;
+    box-shadow: 0 4px 16px rgba(196,149,106,0.15);
+  }
+  .option h2 { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .option .tech { font-size: 12px; color: #6B6966; margin-bottom: 12px; }
+  .option .desc { font-size: 13px; color: #4F4D4A; font-family: sans-serif; line-height: 1.7; margin-bottom: 16px; }
+  .option .pros, .option .cons {
+    font-size: 12px; font-family: sans-serif; line-height: 1.8; margin-bottom: 8px;
+  }
+  .option .pros span { color: #5A9E6F; }
+  .option .cons span { color: #C75B5B; }
+  a.btn {
+    display: block; text-align: center; padding: 12px;
+    background: #C4956A; color: #FBF9F6; text-decoration: none;
+    font-family: 'Courier New', monospace; font-size: 14px;
+    margin-top: 16px;
+  }
+  a.btn:hover { background: #B5845B; }
+</style>
+</head>
+<body>
+  <h1>RESONANCE 视觉方案对比</h1>
+  <p class="subtitle">点击各方案查看完整 demo，选择你喜欢的视觉风格</p>
+
+  <div class="grid">
+    <div class="option">
+      <h2>方案一：增强宫崎骏像素画</h2>
+      <div class="tech">Canvas + requestAnimationFrame</div>
+      <div class="desc">
+        高分辨率像素画（70x60 grid），比 spec 里的 20x28 大幅提升。
+        丰富的大气效果：圆形暖光、星星闪烁、萤火虫、花瓣飘落。
+        多色阶树干、多层樱花冠、角色细节。
+      </div>
+      <div class="pros">
+        <span>+</span> 风格独特、辨识度高<br>
+        <span>+</span> 文件体积小、无外部依赖<br>
+        <span>+</span> 完全可控每一个像素
+      </div>
+      <div class="cons">
+        <span>-</span> 开发量大（12种植物手工画）<br>
+        <span>-</span> v0.dev 难以生成 canvas 代码<br>
+        <span>-</span> 质量取决于像素画功底
+      </div>
+      <a class="btn" href="demo-1-pixel-ghibli.html">查看 Demo</a>
+    </div>
+
+    <div class="option">
+      <h2>方案二：SVG 矢量插画</h2>
+      <div class="tech">SVG + CSS @keyframes Animation</div>
+      <div class="desc">
+        矢量绘制的樱花树，有机曲线而非方块。
+        水彩滤镜（feTurbulence + feDisplacementMap）营造手绘感。
+        纯 CSS 动画驱动：摇曳、飘落、闪烁。
+      </div>
+      <div class="pros">
+        <span>+</span> 缩放无损、适配任何屏幕<br>
+        <span>+</span> 开发速度快、v0.dev 友好<br>
+        <span>+</span> SVG 滤镜可做水彩/纸质感<br>
+        <span>+</span> 无外部依赖
+      </div>
+      <div class="cons">
+        <span>-</span> 复杂场景 SVG DOM 可能卡顿<br>
+        <span>-</span> 交互能力不如 Canvas<br>
+        <span>-</span> 很难做实时日夜变化
+      </div>
+      <a class="btn" href="demo-2-svg-illustration.html">查看 Demo</a>
+    </div>
+
+    <div class="option">
+      <h2>方案三：3D 低多边形</h2>
+      <div class="tech">Three.js + toon shading</div>
+      <div class="desc">
+        低多边形 3D 树+花冠，带真实光照和阴影。
+        缓慢旋转展示全角度，花瓣粒子 3D 飘落。
+        暖色点光源脉动，营造宫崎骏日落感。
+      </div>
+      <div class="pros">
+        <span>+</span> 视觉上限最高、最有沉浸感<br>
+        <span>+</span> 3D 光照自然做日夜变化<br>
+        <span>+</span> 旋转/缩放交互天然支持
+      </div>
+      <div class="cons">
+        <span>-</span> Three.js bundle ~150KB+<br>
+        <span>-</span> 手机端性能/耗电风险<br>
+        <span>-</span> v0.dev 基本无法生成<br>
+        <span>-</span> 建模工作量大
+      </div>
+      <a class="btn" href="demo-3-threejs-lowpoly.html">查看 Demo</a>
+    </div>
+
+    <div class="option">
+      <h2>方案四：CSS 水彩手绘风</h2>
+      <div class="tech">Pure CSS (gradient + filter + shadow)</div>
+      <div class="desc">
+        纯 CSS 构建的树/花/角色，用 blur 滤镜营造水彩柔和感。
+        半透明重叠层创造深度，glassmorphism 卡片效果。
+        所有动画用 @keyframes，零 JS 开销。
+      </div>
+      <div class="pros">
+        <span>+</span> 零依赖、v0.dev 最友好<br>
+        <span>+</span> 性能最好（纯 CSS 硬件加速）<br>
+        <span>+</span> 迭代速度最快<br>
+        <span>+</span> Glassmorphism 卡片效果精致
+      </div>
+      <div class="cons">
+        <span>-</span> 视觉表现力有上限<br>
+        <span>-</span> 复杂植物形态难以表达<br>
+        <span>-</span> 精细交互（点击抖动）需少量 JS
+      </div>
+      <a class="btn" href="demo-4-css-painterly.html">查看 Demo</a>
+    </div>
+  </div>
+</body>
+</html>

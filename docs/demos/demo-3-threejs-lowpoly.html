@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resonance Demo 3 — Three.js Low-poly 3D</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #E8E4DE;
+    display: flex; justify-content: center; align-items: flex-start;
+    min-height: 100vh; padding: 20px 0;
+    font-family: 'Courier New', monospace;
+  }
+  .phone {
+    width: 390px; background: #F3F1ED;
+    border: 1px solid #C5C1BB;
+    padding: 24px 20px 32px;
+  }
+  .header { text-align: center; margin-bottom: 16px; }
+  .header h1 { font-size: 17px; color: #1D1B1B; font-weight: 500; letter-spacing: 3px; }
+  .header p { font-size: 14px; color: #4F4D4A; font-family: sans-serif; margin-top: 4px; }
+  .scene-container {
+    width: 350px; height: 300px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB; overflow: hidden;
+    background: #2B3A67;
+  }
+  .scene-container canvas { display: block; width: 350px !important; height: 300px !important; }
+  .section-divider {
+    font-size: 11px; color: #6B6966; letter-spacing: 2px;
+    text-transform: uppercase; margin: 20px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-divider::after { content: ''; flex: 1; height: 1px; background: #C5C1BB; }
+  .bloom-container {
+    width: 160px; height: 160px; margin: 0 auto 20px;
+    border: 1px solid #C5C1BB; overflow: hidden;
+    background: #87AECF;
+  }
+  .bloom-container canvas { display: block; width: 160px !important; height: 160px !important; }
+  .card {
+    background: #FBF9F6; border: 1px solid #C5C1BB; padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .avatar { width: 48px; height: 48px; background: #EDE9E3; display:flex;align-items:center;justify-content:center;font-size:24px; }
+  .card-info { font-size: 14px; color: #1D1B1B; }
+  .card-info small { color: #6B6966; font-size: 12px; }
+  .score-bar { height: 8px; background: #DDD9D3; margin: 10px 0; position: relative; }
+  .score-fill { height: 100%; background: #C4956A; width: 85%; }
+  .score-label { font-size: 12px; color: #C4956A; position: absolute; right: 0; top: -16px; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .tag { background: #EDE9E3; color: #4F4D4A; font-size: 12px; padding: 3px 8px; font-family: sans-serif; }
+  .highlights { font-size: 13px; color: #4F4D4A; font-family: sans-serif; line-height: 1.8; }
+  .highlights span { color: #C4956A; margin-right: 4px; }
+  .btn {
+    display: block; width: 100%; padding: 12px;
+    background: #C4956A; color: #FBF9F6; border: none;
+    font-size: 14px; font-family: 'Courier New', monospace;
+    cursor: pointer; text-align: center; margin-top: 12px;
+  }
+  .btn:hover { background: #B5845B; }
+  .label {
+    text-align: center; margin-top: 20px; padding: 12px;
+    font-size: 13px; color: #6B6966; border-top: 1px solid #C5C1BB;
+  }
+  .loading {
+    display:flex;align-items:center;justify-content:center;
+    width:100%;height:100%;color:#9E9A94;font-size:13px;font-family:sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <h1>RESONANCE</h1>
+    <p>找到同频的人</p>
+  </div>
+
+  <div class="scene-container" id="mainContainer">
+    <div class="loading">加载3D场景中...</div>
+  </div>
+
+  <div class="section-divider">RelationshipBloom · 樱花</div>
+
+  <div class="bloom-container" id="bloomContainer">
+    <div class="loading">加载中...</div>
+  </div>
+
+  <div class="section-divider">候选人</div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="avatar">🌸</div>
+      <div class="card-info">上海 · 25岁<br><small>♀</small></div>
+    </div>
+    <div class="score-bar">
+      <div class="score-label">85</div>
+      <div class="score-fill"></div>
+    </div>
+    <div class="tags">
+      <span class="tag">温柔体贴</span>
+      <span class="tag">爱好运动</span>
+      <span class="tag">善于倾听</span>
+    </div>
+    <div class="highlights">
+      <span>·</span>你们都喜欢旅行<br>
+      <span>·</span>对生活节奏想法相似<br>
+      <span>·</span>价值观接近
+    </div>
+    <button class="btn">联系TA</button>
+  </div>
+
+  <div class="label">方案三：3D 低多边形 (Three.js Low-poly)</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+function createScene(container, bgColor, width, height) {
+  container.innerHTML = '';
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(bgColor);
+  scene.fog = new THREE.FogExp2(bgColor, 0.008);
+
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+
+  return { scene, camera, renderer };
+}
+
+function createTree(scene) {
+  const group = new THREE.Group();
+
+  // Trunk — tapered cylinder
+  const trunkGeo = new THREE.CylinderGeometry(0.15, 0.3, 3, 6);
+  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B6B4A });
+  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+  trunk.position.y = 1.5;
+  trunk.castShadow = true;
+  group.add(trunk);
+
+  // Branches
+  const branchGeo = new THREE.CylinderGeometry(0.05, 0.12, 1.5, 5);
+  const branchMat = new THREE.MeshLambertMaterial({ color: 0x6B5038 });
+
+  const branchData = [
+    { pos: [0.4, 2.5, 0], rot: [0, 0, -0.7] },
+    { pos: [-0.5, 2.8, 0.2], rot: [0.2, 0, 0.8] },
+    { pos: [0.2, 2.2, -0.4], rot: [-0.3, 0, -0.5] },
+    { pos: [-0.3, 2.0, 0.3], rot: [0.4, 0, 0.6] },
+  ];
+
+  for (const b of branchData) {
+    const branch = new THREE.Mesh(branchGeo, branchMat);
+    branch.position.set(...b.pos);
+    branch.rotation.set(...b.rot);
+    branch.castShadow = true;
+    group.add(branch);
+  }
+
+  // Canopy — low-poly spheres (icosahedrons) in pink shades
+  const canopyColors = [0xE8A0B0, 0xD4869A, 0xF0C0D0, 0xE8A0B0, 0xD4869A, 0xF0C0D0, 0x4A7C59, 0x6B9E5E];
+  const canopyPositions = [
+    [0, 3.8, 0, 1.0],
+    [0.8, 3.5, 0.3, 0.8],
+    [-0.7, 3.4, -0.2, 0.85],
+    [0.3, 4.2, -0.3, 0.7],
+    [-0.4, 4.0, 0.4, 0.75],
+    [1.0, 3.0, -0.3, 0.6],
+    [-1.0, 3.1, 0.2, 0.6],
+    [0, 4.5, 0, 0.55],
+  ];
+
+  const canopyMeshes = [];
+  canopyPositions.forEach(([x, y, z, r], i) => {
+    const geo = new THREE.IcosahedronGeometry(r, 1);
+    const mat = new THREE.MeshLambertMaterial({
+      color: canopyColors[i],
+      flatShading: true,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.userData.baseY = y;
+    mesh.userData.phase = Math.random() * Math.PI * 2;
+    group.add(mesh);
+    canopyMeshes.push(mesh);
+  });
+
+  return { group, canopyMeshes };
+}
+
+function createGround(scene) {
+  // Ground plane — circular
+  const groundGeo = new THREE.CircleGeometry(8, 12);
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x4A7C59 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Soil mound under tree
+  const moundGeo = new THREE.SphereGeometry(1.5, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+  const moundMat = new THREE.MeshLambertMaterial({ color: 0x8B6B4A, flatShading: true });
+  const mound = new THREE.Mesh(moundGeo, moundMat);
+  mound.position.y = -0.1;
+  scene.add(mound);
+}
+
+function createPetals(scene) {
+  const petals = [];
+  const petalGeo = new THREE.PlaneGeometry(0.08, 0.1);
+  const petalColors = [0xF0C0D0, 0xE8A0B0, 0xD4869A];
+
+  for (let i = 0; i < 30; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: petalColors[i % 3],
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const petal = new THREE.Mesh(petalGeo, mat);
+    petal.position.set(
+      (Math.random() - 0.5) * 3,
+      2 + Math.random() * 4,
+      (Math.random() - 0.5) * 3
+    );
+    petal.userData.baseY = petal.position.y;
+    petal.userData.speed = 0.2 + Math.random() * 0.3;
+    petal.userData.phase = Math.random() * Math.PI * 2;
+    petal.userData.drift = (Math.random() - 0.5) * 0.5;
+    scene.add(petal);
+    petals.push(petal);
+  }
+  return petals;
+}
+
+function createStars(scene) {
+  const starsGeo = new THREE.BufferGeometry();
+  const positions = [];
+  for (let i = 0; i < 100; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.random() * Math.PI * 0.4;
+    const r = 20 + Math.random() * 10;
+    positions.push(
+      r * Math.sin(phi) * Math.cos(theta),
+      r * Math.cos(phi) + 5,
+      r * Math.sin(phi) * Math.sin(theta)
+    );
+  }
+  starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  const starsMat = new THREE.PointsMaterial({ color: 0xF0EDE8, size: 0.15 });
+  const stars = new THREE.Points(starsGeo, starsMat);
+  scene.add(stars);
+  return stars;
+}
+
+function createCharacters(scene) {
+  // Simple low-poly characters sitting
+  const chars = [];
+
+  for (let side = 0; side < 2; side++) {
+    const x = side === 0 ? -1.0 : 1.0;
+    const g = new THREE.Group();
+
+    // Body
+    const bodyGeo = new THREE.BoxGeometry(0.35, 0.45, 0.25);
+    const bodyMat = new THREE.MeshLambertMaterial({
+      color: side === 0 ? 0x87AECF : 0xC45060,
+      flatShading: true
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 0.4;
+    g.add(body);
+
+    // Head
+    const headGeo = new THREE.IcosahedronGeometry(0.2, 1);
+    const headMat = new THREE.MeshLambertMaterial({ color: 0xE8C4A0, flatShading: true });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.position.y = 0.8;
+    g.add(head);
+
+    // Hair
+    const hairGeo = new THREE.IcosahedronGeometry(0.22, 1);
+    const hairMat = new THREE.MeshLambertMaterial({
+      color: side === 0 ? 0xC46B4A : 0x5A4A3A,
+      flatShading: true
+    });
+    const hair = new THREE.Mesh(hairGeo, hairMat);
+    hair.position.y = 0.85;
+    hair.scale.set(1, 0.7, 1);
+    g.add(hair);
+
+    g.position.set(x, 0, 0.8);
+    scene.add(g);
+    chars.push(g);
+  }
+  return chars;
+}
+
+// ===== MAIN SCENE =====
+const mainC = document.getElementById('mainContainer');
+const { scene: s1, camera: c1, renderer: r1 } = createScene(mainC, '#2B3A67', 350, 300);
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x6B7FA0, 0.6);
+s1.add(ambient);
+
+const pointLight = new THREE.PointLight(0xC4956A, 2.5, 15);
+pointLight.position.set(0, 5, 2);
+pointLight.castShadow = true;
+s1.add(pointLight);
+
+const hemiLight = new THREE.HemisphereLight(0xC4956A, 0x4A7C59, 0.4);
+s1.add(hemiLight);
+
+// Scene objects
+const { group: tree1, canopyMeshes: cm1 } = createTree(s1);
+s1.add(tree1);
+createGround(s1);
+const petals1 = createPetals(s1);
+createStars(s1);
+createCharacters(s1);
+
+c1.position.set(3, 4, 6);
+c1.lookAt(0, 2.5, 0);
+
+// ===== BLOOM SCENE =====
+const bloomC = document.getElementById('bloomContainer');
+const { scene: s2, camera: c2, renderer: r2 } = createScene(bloomC, '#87AECF', 160, 160);
+
+const ambient2 = new THREE.AmbientLight(0xFFFFFF, 0.8);
+s2.add(ambient2);
+const dirLight = new THREE.DirectionalLight(0xFFF5E0, 1.0);
+dirLight.position.set(2, 5, 3);
+s2.add(dirLight);
+
+const { group: tree2, canopyMeshes: cm2 } = createTree(s2);
+tree2.scale.set(0.7, 0.7, 0.7);
+s2.add(tree2);
+
+// Pot
+const potGeo = new THREE.CylinderGeometry(0.6, 0.5, 0.5, 6);
+const potMat = new THREE.MeshLambertMaterial({ color: 0xA07050, flatShading: true });
+const pot = new THREE.Mesh(potGeo, potMat);
+pot.position.y = -0.25;
+s2.add(pot);
+
+// Soil in pot
+const soilGeo = new THREE.CircleGeometry(0.55, 6);
+const soilMat = new THREE.MeshLambertMaterial({ color: 0x8B6B4A });
+const soil = new THREE.Mesh(soilGeo, soilMat);
+soil.rotation.x = -Math.PI / 2;
+soil.position.y = 0.01;
+s2.add(soil);
+
+c2.position.set(2, 3, 4);
+c2.lookAt(0, 2, 0);
+
+const petals2 = createPetals(s2);
+
+// ===== ANIMATION LOOP =====
+function animate(time) {
+  const t = time / 1000;
+
+  // Rotate tree slowly
+  tree1.rotation.y = t * 0.15;
+  tree2.rotation.y = t * 0.2;
+
+  // Canopy breathing
+  for (const meshes of [cm1, cm2]) {
+    for (const m of meshes) {
+      const s = 1 + Math.sin(t * 1.5 + m.userData.phase) * 0.03;
+      m.scale.set(s, s, s);
+    }
+  }
+
+  // Petal falling animation
+  for (const petals of [petals1, petals2]) {
+    for (const p of petals) {
+      p.position.y -= p.userData.speed * 0.01;
+      p.position.x += Math.sin(t + p.userData.phase) * 0.003;
+      p.position.z += p.userData.drift * 0.003;
+      p.rotation.x = t * 0.5 + p.userData.phase;
+      p.rotation.z = t * 0.3;
+
+      // Reset when fallen
+      if (p.position.y < -0.5) {
+        p.position.y = p.userData.baseY;
+        p.position.x = (Math.random() - 0.5) * 3;
+        p.position.z = (Math.random() - 0.5) * 3;
+      }
+    }
+  }
+
+  // Warm light pulse
+  pointLight.intensity = 2.5 + Math.sin(t * 0.5) * 0.5;
+
+  r1.render(s1, c1);
+  r2.render(s2, c2);
+
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

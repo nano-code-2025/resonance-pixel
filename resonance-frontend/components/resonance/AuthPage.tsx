@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { LoginHeroCanvas } from './LoginHeroCanvas'
 
 export function AuthPage() {
-  const { setPage, setUserProfile, setToken, enterDemoMode } = useAppStore()
+  const { setPage, setUserProfile, setToken } = useAppStore()
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
@@ -236,26 +236,7 @@ export function AuthPage() {
           </div>
         )}
 
-        {/* Demo mode — skip auth for testing */}
-        <button
-          onClick={enterDemoMode}
-          style={{
-            width: '100%',
-            background: 'none',
-            border: '1px dashed #C5C1BB',
-            color: '#9E9A94',
-            padding: '10px 0',
-            fontSize: 12,
-            fontFamily: 'var(--font-ibm-plex-mono)',
-            marginTop: 24,
-            cursor: 'pointer',
-            letterSpacing: '0.05em',
-          }}
-        >
-          演示模式 · 跳过登录
-        </button>
-
-        <p style={{ fontSize: 11, color: '#9E9A94', marginTop: 12, fontFamily: 'var(--font-inter)', textAlign: 'center' }}>
+        <p style={{ fontSize: 11, color: '#9E9A94', marginTop: 20, fontFamily: 'var(--font-inter)', textAlign: 'center' }}>
           登录即代表同意用户协议和隐私政策
         </p>
       </div>
